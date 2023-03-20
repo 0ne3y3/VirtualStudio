@@ -12,7 +12,7 @@ public class Characters : ModuleRules
 			}
 		);
 
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "LiveLinkInterface" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

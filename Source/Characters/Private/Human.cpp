@@ -10,131 +10,219 @@ DEFINE_LOG_CATEGORY_STATIC( LogCharacter, Log, All );
 FName AHuman::MainBodyName(TEXT("MainBodyMesh"));
 FName AHuman::EyesName( TEXT( "EyesMesh" ) );
 
-AHuman::AHuman()
+AHuman::AHuman( const FObjectInitializer& ObjectInitializer ) : Super( ObjectInitializer )
 {
-	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("CharacterScene"));
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.TickInterval = 1.f / 30.f;
+
+	RootComponent = CreateDefaultSubobject<USceneComponent>( TEXT( "CharacterScene" ) );
+	RootComponent->SetComponentTickEnabled(false);
 
 	MainBody = CreateDefaultSubobject<USkeletalMeshComponent>( AHuman::MainBodyName );
-	Eyes = CreateDefaultSubobject<UInstancedStaticMeshComponent>( AHuman::EyesName );
+	MainBody->SetupAttachment( RootComponent );
+	MainBody->bPropagateCurvesToFollowers = true;
+	//MainBody->SetComponentTickEnabled( false );
+	/* Apply all default parameter, see later what to set as project goes */
 
-	if( MainBody != nullptr )
-	{
-		MainBody->SetupAttachment(RootComponent);
-		MainBody->bPropagateCurvesToFollowers = true;
-		/* Apply all default parameter, see later what to set as project goes */
-	}
+	Eyes = CreateDefaultSubobject<UInstancedStaticMeshComponent>( AHuman::EyesName );
+	//Eyes->SetComponentTickEnabled( false );
+
+}
+
+// Called every frame
+void AHuman::Tick( float DeltaTime )
+{
+	Super::Tick( DeltaTime );
+
+	UpdateEyes();
 }
 
 void AHuman::OnConstruction( const FTransform& Transform )
 {
 	Super::OnConstruction( Transform );
-
-	// return if we don't have data to create the character
-	if( !HumanBodyData ) return;
-	
-	// Setup skeletal mesh data
-	for( FBodyMesh& BodyMeshData : HumanBodyData->BodyMeshes )
+		
+	if( HumanBodyData.MainBody.MeshData )
 	{
-		if( !BodyMeshData.MeshData ) continue;
+		if(!SetupMainBody( HumanBodyData.MainBody.MeshData )) return;
 
-		USkeletalMesh* Mesh = BodyMeshData.MeshData->Mesh.LoadSynchronous();
+		// setup SkeletalMeshModular
+		SetupSkeletalMeshComponents( HumanBodyData.SkeletalMeshes );
 
-		if( Mesh )
+		// setup Accessory
+
+		// setup eyes if head
+		if( HeadMeshData )
 		{
-			switch( BodyMeshData.MeshData->MeshType )
-			{
-				case EBodyPartType::MainBody:
-					SetupMainBody( Mesh, Cast<UMainBodyMeshData>( BodyMeshData.MeshData ), BodyMeshData.Materials );
-					break;
-				case EBodyPartType::Head:
-					if( bHumanHaveHead ) continue; // we check if the character already have an head, coming from the main body
-					bHumanHaveHead = true;
-				default:
-					SetupModularBodyPart( Mesh, BodyMeshData );
-					break;
-			}
-			
+			SetHeadAnimationData( HeadMeshData->AnimationData );
+			SetupEyes( HeadMeshData->NumberOfEyes, GetHeadComponent() );
 		}
-	}
-
-	if( bHumanHaveBody )
-	{
-		// Setup eye and accessory data
-		for( FAccessoryMesh& AccessoryMeshData : HumanBodyData->BodyAccessories )
+		else
 		{
-			UStaticMesh* Mesh = AccessoryMeshData.MeshData->Mesh.LoadSynchronous();
-
-			if( AccessoryMeshData.MeshData->MeshType != EBodyPartType::Eye && Mesh )
-			{
-				// setup accessory
-			}
+			UpdateNumberOfEyeInstance(0, MainBody);
+			PrimaryActorTick.bCanEverTick = false;
 		}
 	}
 }
 
-void AHuman::SetupMainBody( USkeletalMesh* Mesh, UMainBodyMeshData* MainBodyMeshData, TArray<TSoftObjectPtr<UMaterialInstance>>& MeshMaterials )
+bool AHuman::SetupMainBody( USkeletalMeshData* MeshData )
 {
-	if( !MainBodyMeshData ) return;
+	UMainBodyMeshData* MainBodyData = Cast<UMainBodyMeshData>( MeshData );
 
-	MainBody->SetSkeletalMesh(Mesh);
-
-	bHumanHaveHead = MainBodyMeshData->bHaveHead;
-
-	if( bHumanHaveHead && !bHumanHaveEyes && MainBodyMeshData->EyeData.MeshData )
+	if( MainBodyData && !MainBodyData->Mesh )
 	{
-		UStaticMesh* EyeMeshData = MainBodyMeshData->EyeData.MeshData->Mesh.LoadSynchronous();
-		if( EyeMeshData )
+		USkeletalMesh* SkeletalMesh = MainBodyData->Mesh.LoadSynchronous();
+
+		if( SkeletalMesh )
 		{
-			bHumanHaveEyes = true;
-			SetupEyes( EyeMeshData, MainBodyMeshData->EyeData, MainBody );
+			MainBody->SetSkeletalMesh( SkeletalMesh );
+			UpdateMainBodyMaterials();
+
+			UpdateMainBodyCustomData( HumanBodyData.SkinAndFaceCustomData );			
+
+			MainBody->SetAnimInstanceClass( MainBodyData->BodyAnimationBlueprint );
+
+			MainBodyPP = MainBodyData->PPAnimationData;
+
+			return true;
 		}
 	}
 
-	for( uint8 MaterialIndex = 0; MaterialIndex < MeshMaterials.Num(); MaterialIndex++ )
+	return false;
+}
+
+void AHuman::UpdateMainBodyMaterials()
+{
+	if( !HumanBodyData.MainBody.MeshData && !MainBody->GetSkeletalMeshAsset() ) return;
+
+	int32 MeshMaterialNum = MainBody->GetSkeletalMeshAsset()->GetNumMaterials();
+	bool bUseCustomMaterial = HumanBodyData.MainBody.bUseCustomMaterial;
+	TArray<TSoftObjectPtr<UMaterialInstance>>& CustomMaterials = HumanBodyData.MainBody.CustomMaterials;
+	TArray<TSoftObjectPtr<UMaterialInstance>>& DefaultMaterials = HumanBodyData.MainBody.MeshData->DefaultMaterials;
+
+	for( uint8 MaterialIndex = 0; MaterialIndex < MeshMaterialNum; MaterialIndex++ )
 	{
-		if( MeshMaterials[MaterialIndex] )
+		UMaterialInstance* Material;
+		if( bUseCustomMaterial && CustomMaterials[MaterialIndex] )
 		{
-			UMaterialInstance* Material = MeshMaterials[MaterialIndex].LoadSynchronous();
+			Material = CustomMaterials[MaterialIndex].LoadSynchronous();
+			if( Material )
+			{
+				MainBody->SetMaterial( MaterialIndex, Material );
+				continue;
+			}
+		}
+
+		if( DefaultMaterials[MaterialIndex] )
+		{
+			Material = DefaultMaterials[MaterialIndex].LoadSynchronous();
 			if( Material ) MainBody->SetMaterial( MaterialIndex, Material );
 		}
 	}
-
-	if( MainBodyMeshData->PPAnimationData ) PPAMainBody = MainBodyMeshData->PPAnimationData;
 }
 
-void AHuman::SetupEyes( UStaticMesh* Mesh, FAccessoryMesh& BodyMeshData, USkeletalMeshComponent* ParentMeshComponent )
+void AHuman::UpdateMainBodyCustomData( FSkinFaceCustomData& SkinFaceData )
 {
-	if( BodyMeshData.NumberOfEyes < 1 ) return;
-
-	Eyes->AttachToComponent( ParentMeshComponent , FAttachmentTransformRules::SnapToTargetIncludingScale, TEXT("head"));
-
-	Eyes->SetStaticMesh( Mesh );
-	Eyes->NumCustomDataFloats = FEyeCustomData::MaxCustomData;
-	
-	if( BodyMeshData.Materials.IsValidIndex( 0 ) )
+	for( int32 CustomDataIndex = FSkinFaceCustomData::StartingIndexSkin; CustomDataIndex <= FSkinFaceCustomData::EndingIndexBody; CustomDataIndex++ )
 	{
-		UMaterialInstance* Material = BodyMeshData.Materials[0].LoadSynchronous();
-		if( Material ) Eyes->SetMaterial( 0, Material );
+		MainBody->SetCustomPrimitiveDataFloat( CustomDataIndex, SkinFaceData.GetBodyCustomDataValue( CustomDataIndex ) );
 	}
-		
-	for( uint8 EyeIndex = 0; EyeIndex < BodyMeshData.NumberOfEyes; EyeIndex++ )
-	{
-		FName EyeSocketName = FName( FString::Printf( TEXT( "eye%d" ), EyeIndex+1 ) );
-		if( !ParentMeshComponent->DoesSocketExist( EyeSocketName ) ) continue;
+}
 
-		Eyes->AddInstance( ParentMeshComponent->GetSocketTransform(EyeSocketName, ERelativeTransformSpace::RTS_World), true);
+bool AHuman::SetupEyes( int32 NumberOfEyes, USkeletalMeshComponent* HeadComponent )
+{
+	if( !HeadMeshData || HeadMeshData->EyeMesh ) return false;
+
+	if( NumberOfEyes < 1 ) return true;
+
+	UStaticMesh* EyeMesh = HeadMeshData->EyeMesh.LoadSynchronous();
+	if( EyeMesh )
+	{
+		Eyes->AttachToComponent( (HeadComponent) ? HeadComponent : MainBody, FAttachmentTransformRules::SnapToTargetIncludingScale, TEXT( "head" ) );
+		Eyes->SetStaticMesh( EyeMesh );
 		
+		UpdateEyesMaterial(HumanBodyData.EyeCustomData.MaterialIndex);
+
+		UpdateNumberOfEyeInstance( NumberOfEyes, HeadComponent );
+
+		Eyes->NumCustomDataFloats = FEyeCustomData::MaxCustomData;
+
+		UpdateEyeDefaultPosition();
+
+		UpdateEyesCustomData( HumanBodyData.EyeCustomData, NumberOfEyes );
+		
+		return true;
+	}
+
+	return false;
+}
+
+void AHuman::UpdateNumberOfEyeInstance( int32 NumberOfEyes, USkeletalMeshComponent* HeadComponent)
+{
+	if( !HeadComponent ) return;
+
+	int32 EyeLimit = FMath::Max( NumberOfEyes, Eyes->GetInstanceCount() );
+
+	for( uint8 EyeIndex = 0; EyeIndex < EyeLimit; EyeIndex++ )
+	{
+		FName EyeSocketName = FName( FString::Printf( TEXT( "eye%d" ), EyeIndex + 1 ) );
+
+		if( EyeIndex < NumberOfEyes )
+		{
+			if( Eyes->IsValidInstance( EyeIndex ) )
+			{
+				Eyes->UpdateInstanceTransform( EyeIndex, HeadComponent->GetSocketTransform( EyeSocketName, ERelativeTransformSpace::RTS_World ), true );
+			}
+			else
+			{
+				Eyes->AddInstance( HeadComponent->GetSocketTransform( EyeSocketName, ERelativeTransformSpace::RTS_World ), true );
+			}
+		}
+		else
+		{
+			Eyes->RemoveInstance( EyeIndex );
+		}
+	}	
+}
+
+void AHuman::UpdateEyesMaterial(int32 MaterialIndex)
+{
+	if( HeadMeshData )
+	{
+		UMaterialInstance* Material = nullptr;
+		if( HeadMeshData->EyeMaterials.IsValidIndex( MaterialIndex ))
+		{
+			Material = HeadMeshData->EyeMaterials[MaterialIndex].LoadSynchronous();
+		}
+		else
+		{
+			if( HeadMeshData->EyeMaterials.IsValidIndex(0) )
+			{
+				Material = HeadMeshData->EyeMaterials[0].LoadSynchronous();
+			}
+		}
+
+		if( Material )
+		{
+			Eyes->SetMaterial(0, Material );
+		}
+	}
+}
+
+void AHuman::UpdateEyesCustomData( FEyeCustomData& EyeData, int32 NumberOfEyes )
+{
+	for( uint8 EyeIndex = 0; EyeIndex < NumberOfEyes; EyeIndex++ )
+	{
 		for( uint8 CustomDataIndex = 0; CustomDataIndex < Eyes->NumCustomDataFloats; CustomDataIndex++ )
 		{
-			Eyes->SetCustomDataValue( EyeIndex, CustomDataIndex, HumanBodyData->EyeCustomData.GetCustomDataValue( EyeIndex, CustomDataIndex ) );
+			Eyes->SetCustomDataValue( EyeIndex, CustomDataIndex, EyeData.GetCustomDataValue( EyeIndex, CustomDataIndex ) );
 		}
 
 		// Impair numbers are right eye, so we need to reverse the UV.x for the iris (because the socket transform is reversed too)
-		if( EyeIndex % 2 > 0)
+		if( EyeIndex % 2 > 0 )
 		{
 			// right eye
 			// if it's the last instance, we set the render state dirty to update all the custom data
-			if( EyeIndex == BodyMeshData.NumberOfEyes - 1 )
+			if( EyeIndex == NumberOfEyes - 1 )
 			{
 				Eyes->SetCustomDataValue( EyeIndex, FEyeCustomData::LeftRightCustomDataIndex, 1.0f, true );
 			}
@@ -142,12 +230,12 @@ void AHuman::SetupEyes( UStaticMesh* Mesh, FAccessoryMesh& BodyMeshData, USkelet
 			{
 				Eyes->SetCustomDataValue( EyeIndex, FEyeCustomData::LeftRightCustomDataIndex, 1.0f );
 			}
-			
+
 		}
 		else
 		{
 			// left eye
-			if( EyeIndex == BodyMeshData.NumberOfEyes - 1 )
+			if( EyeIndex == NumberOfEyes - 1 )
 			{
 				Eyes->SetCustomDataValue( EyeIndex, FEyeCustomData::LeftRightCustomDataIndex, 0.0f, true );
 			}
@@ -157,65 +245,291 @@ void AHuman::SetupEyes( UStaticMesh* Mesh, FAccessoryMesh& BodyMeshData, USkelet
 			}
 		}
 	}
-	
 }
 
-void AHuman::SetupModularBodyPart( USkeletalMesh* Mesh, FBodyMesh& BodyMeshData )
+void AHuman::UpdateEyeDefaultPosition()
 {
-	UModularSkeletalMeshComponent* BodyComponent = CreateNewBodyPart( UEnum::GetValueAsName( BodyMeshData.MeshData->MeshType ) );
-
-	if( BodyComponent )
+	if( HeadMeshData )
 	{
-		BodyComponent->SetSkeletalMesh( Mesh );
-
-		TArray<UMaterialInstance*> MeshMaterialsOverride;
-		for( uint8 MaterialIndex = 0; MaterialIndex < BodyMeshData.Materials.Num(); MaterialIndex++ )
+		for( uint8 EyeIndex = 0; EyeIndex < HumanBodyData.EyeCustomData.IrisOffset.Num(); EyeIndex++ )
 		{
-			if( BodyMeshData.Materials[MaterialIndex] ) MeshMaterialsOverride.AddUnique( BodyMeshData.Materials[MaterialIndex].LoadSynchronous() );
+			HumanBodyData.EyeCustomData.IrisOffset[EyeIndex] = HeadMeshData->IrisDefaultPosition;
+		}
+	}
+}
+
+void AHuman::UpdateEyes()
+{
+	// TODO -> DO ALL CALCULATION IN SHADER ? STILL A LOT OF CUSTOM DATA AVAILABLE
+
+	USkeletalMeshComponent* HeadComponent = GetHeadComponent();
+	if( HeadComponent && HeadMeshData )
+	{
+		/* Iris position(in - out, up - down) : Lerp between base position (iris offset) and max position set in head data
+		*/
+
+		FVector2D IrisPositionLeft( HumanBodyData.EyeCustomData.GetCustomDataValue( 0, 6 ), HumanBodyData.EyeCustomData.GetCustomDataValue( 0, 7 ) );
+		FVector2D IrisOffsetXLeft = FVector2D::Zero();
+		FVector2D IrisOffsetYLeft = FVector2D::Zero();
+		if( float EyeLookInLeft = HeadComponent->GetMorphTarget( "EyeLookInLeft" ) > 0.f )
+		{
+			IrisOffsetXLeft = FMath::Lerp( IrisPositionLeft, HeadMeshData->IrisMaxPositionIn, EyeLookInLeft );
+		}
+		else if( float EyeLookOutLeft = HeadComponent->GetMorphTarget( "EyeLookOutLeft" ) > 0.f )
+		{
+			IrisOffsetXLeft = FMath::Lerp( IrisPositionLeft, HeadMeshData->IrisMaxPositionOut, EyeLookOutLeft );
 		}
 
-		BodyComponent->SetSkeletalMeshMaterials( MeshMaterialsOverride );
-
-		UHeadMeshData* HeadBodyMeshData = Cast<UHeadMeshData>( BodyMeshData.MeshData );
-		if( HeadBodyMeshData && !bHumanHaveEyes && HeadBodyMeshData->EyeData.MeshData )
+		if( float EyeLookUpLeft = HeadComponent->GetMorphTarget( "EyeLookUpLeft" ) > 0.f )
 		{
-			UStaticMesh* EyeMeshData = HeadBodyMeshData->EyeData.MeshData->Mesh.LoadSynchronous();
-			if( EyeMeshData )
+			IrisOffsetYLeft = FMath::Lerp( IrisPositionLeft, HeadMeshData->IrisMaxPositionUp, EyeLookUpLeft );
+		}
+		else if( float EyeLookDownLeft = HeadComponent->GetMorphTarget( "EyeLookDownLeft" ) > 0.f )
+		{
+			IrisOffsetYLeft = FMath::Lerp( IrisPositionLeft, HeadMeshData->IrisMaxPositionDown, EyeLookDownLeft );
+		}
+
+		IrisPositionLeft += IrisOffsetXLeft + IrisOffsetYLeft;
+
+		FVector2D IrisPositionRight( HumanBodyData.EyeCustomData.GetCustomDataValue( 1, 6 ), HumanBodyData.EyeCustomData.GetCustomDataValue( 1, 7 ) );
+		FVector2D IrisOffsetXRight = FVector2D::Zero();
+		FVector2D IrisOffsetYRight = FVector2D::Zero();
+		if( float EyeLookInRight = HeadComponent->GetMorphTarget( "EyeLookInRight" ) > 0.f )
+		{
+			IrisOffsetXRight = FMath::Lerp( IrisPositionRight, HeadMeshData->IrisMaxPositionIn, EyeLookInRight );
+		}
+		else if( float EyeLookOutRight = HeadComponent->GetMorphTarget( "EyeLookOutRight" ) > 0.f )
+		{
+			IrisOffsetXRight = FMath::Lerp( IrisPositionRight, HeadMeshData->IrisMaxPositionOut, EyeLookOutRight );
+		}
+
+		if( float EyeLookUpRight = HeadComponent->GetMorphTarget( "EyeLookUpRight" ) > 0.f )
+		{
+			IrisOffsetYRight = FMath::Lerp( IrisPositionRight, HeadMeshData->IrisMaxPositionUp, EyeLookUpRight );
+		}
+		else if( float EyeLookDownRight = HeadComponent->GetMorphTarget( "EyeLookDownRight" ) > 0.f )
+		{
+			IrisOffsetYRight = FMath::Lerp( IrisPositionRight, HeadMeshData->IrisMaxPositionDown, EyeLookDownRight );
+		}
+
+		IrisPositionRight += IrisOffsetXRight + IrisOffsetYRight;
+
+		/* Iris scale : if eye is wide, scale down the iris for a scared/suprise effect
+		*/
+
+		float EyeWideLeft = HeadComponent->GetMorphTarget( "EyeWideLeft" );
+		float ScalingClampedLeft = FMath::Max(( 1 - EyeWideLeft ), HeadMeshData->EyesMinimumScale );
+		FVector2D IrisScaleLeft( HumanBodyData.EyeCustomData.GetCustomDataValue( 0, 4 ) * ScalingClampedLeft, HumanBodyData.EyeCustomData.GetCustomDataValue( 0, 5 ) * ScalingClampedLeft );
+
+		float EyeWideRight = HeadComponent->GetMorphTarget( "EyeWideRight" );
+		float ScalingClampedRight = FMath::Max( ( 1 - EyeWideRight ), HeadMeshData->EyesMinimumScale );
+		FVector2D IrisScaleRight( HumanBodyData.EyeCustomData.GetCustomDataValue( 1, 4 ) * ScalingClampedRight, HumanBodyData.EyeCustomData.GetCustomDataValue( 1, 5 ) * ScalingClampedRight );
+
+		float EyelashPositionLeft = HumanBodyData.EyeCustomData.GetCustomDataValue( 0, 17 ) + ( -EyeWideLeft )  + HeadComponent->GetMorphTarget("EyeBlinkLeft");
+		float EyelashPositionRight = HumanBodyData.EyeCustomData.GetCustomDataValue( 1, 17 ) + ( -EyeWideRight )  + HeadComponent->GetMorphTarget("EyeBlinkRight");
+
+		// Set custom data for all instances
+		int32 NumberOfEyes = Eyes->GetInstanceCount();
+		for( uint8 EyeIndex = 0; EyeIndex < NumberOfEyes; EyeIndex++ )
+		{
+			if( EyeIndex % 2 > 0 )
 			{
-				bHumanHaveEyes = true;
-				SetupEyes( EyeMeshData, HeadBodyMeshData->EyeData, BodyComponent->GetBodyPartComponent() );
+				// right eye
+				Eyes->SetCustomDataValue( EyeIndex, 4, IrisScaleRight.X );
+				Eyes->SetCustomDataValue( EyeIndex, 5, IrisScaleRight.Y );
+				Eyes->SetCustomDataValue( EyeIndex, 6, IrisPositionRight.X );
+				Eyes->SetCustomDataValue( EyeIndex, 7, IrisPositionRight.Y );
+
+				if( EyeIndex == NumberOfEyes - 1 )
+				{
+					Eyes->SetCustomDataValue( EyeIndex, 17, EyelashPositionRight, true ); // last instance so set render dirty
+				}
+				else
+				{
+					Eyes->SetCustomDataValue( EyeIndex, 17, EyelashPositionRight );
+				}
+			}
+			else
+			{
+				// left eye
+				Eyes->SetCustomDataValue( EyeIndex, 4, IrisScaleLeft.X );
+				Eyes->SetCustomDataValue( EyeIndex, 5, IrisScaleLeft.Y );
+				Eyes->SetCustomDataValue( EyeIndex, 6, IrisPositionLeft.X );
+				Eyes->SetCustomDataValue( EyeIndex, 7, IrisPositionLeft.Y );
+
+				if( EyeIndex == NumberOfEyes - 1 )
+				{
+					Eyes->SetCustomDataValue( EyeIndex, 17, EyelashPositionLeft, true ); // last instance so set render dirty
+				}
+				else
+				{
+					Eyes->SetCustomDataValue( EyeIndex, 17, EyelashPositionLeft );
+				}
 			}
 		}
 	}
 }
 
-UModularSkeletalMeshComponent* AHuman::CreateNewBodyPart( FName BodyPartName )
+void AHuman::SetupSkeletalMeshComponents( TArray<FModularSkeletalMeshData>& SkeletalMeshes )
+{
+	for( FModularSkeletalMeshData& SkeletalMeshData : SkeletalMeshes )
+	{
+		SetupOneSkeletalMeshComponent( SkeletalMeshData );
+	}
+}
+
+void AHuman::SetupOneSkeletalMeshComponent( FModularSkeletalMeshData& SkeletalMeshData )
+{
+	if( SkeletalMeshData.MeshData )
+	{
+		USkeletalMesh* SkeletalMesh = SkeletalMeshData.MeshData->Mesh.LoadSynchronous();
+		if( SkeletalMesh )
+		{
+			USkeletalMeshComponent* BodyComponent = CreateSkeletalMeshComponent( UEnum::GetValueAsName( SkeletalMeshData.MeshData->MeshType ) );
+			if( BodyComponent )
+			{
+				BodyComponent->SetSkeletalMesh( SkeletalMesh );
+
+				if( SkeletalMeshData.bUseCustomMaterial )
+				{
+					UpdateSkeletalMeshMaterials( BodyComponent, SkeletalMeshData.CustomMaterials );
+				}
+				else
+				{
+					UpdateSkeletalMeshMaterials( BodyComponent, SkeletalMeshData.MeshData->DefaultMaterials );
+				}
+
+				if( SkeletalMeshData.MeshData->MeshType == EBodyPartType::Head )
+				{
+					HeadMeshData = Cast<UHeadMeshData>( SkeletalMeshData.MeshData );
+					if( !HeadMeshData ) return BodyComponent->DestroyComponent();
+
+					TArray<float> CustomFaceDatas = HumanBodyData.SkinAndFaceCustomData.CombineFaceData();
+					UpdateSkeletalMeshCustomData( BodyComponent, CustomFaceDatas );
+
+					UpdateHeadAnimInstance();
+				}
+				else
+				{
+					// Combine cloth data
+				}
+
+				RefreshLeaderComponent( BodyComponent );
+			}
+		}
+	}
+}
+
+USkeletalMeshComponent* AHuman::CreateSkeletalMeshComponent( FName BodyPartName )
 {
 	// check if the body part already exist, return it if it's already here
-	for( UModularSkeletalMeshComponent* BodyPart : BodyParts )
+	for( USkeletalMeshComponent* SkeletalComponent : SkeletalComponents )
 	{
-		if( BodyPartName == BodyPart->GetFName() )
+		if( BodyPartName == SkeletalComponent->GetFName() )
 		{
-			return BodyPart;
+			return SkeletalComponent;
 		}
 	}
 
-	UModularSkeletalMeshComponent* BodyComponentCreated = NewObject<UModularSkeletalMeshComponent>( this, UModularSkeletalMeshComponent::StaticClass(), BodyPartName);
+	USkeletalMeshComponent* BodyComponentCreated = NewObject<USkeletalMeshComponent>( this, USkeletalMeshComponent::StaticClass(), BodyPartName);
 
-	if( BodyComponentCreated != nullptr )
+	if( BodyComponentCreated )
 	{
-		if( BodyComponentCreated->InitializeSkeletalMeshComponent( this, BodyPartName ) )
-		{
-			BodyParts.Add( BodyComponentCreated );
-			return BodyComponentCreated;
-		}
-		else
-		{
-			BodyComponentCreated->DestroyComponent(true);
-			return nullptr;
-		}
+		InitializeSkeletalMeshComponent( BodyComponentCreated );
+		SkeletalComponents.Add( BodyComponentCreated );
+		return BodyComponentCreated;
 	}
 
-	UE_LOG( LogCharacter, Error, TEXT( "Error when creating UModularSkeletalMeshComponent" ) );
+	UE_LOG( LogCharacter, Error, TEXT( "Error when creating USkeletalMeshComponent" ) );
 	return nullptr;
 }
+
+void AHuman::InitializeSkeletalMeshComponent( USkeletalMeshComponent* SkeletalMeshComponent )
+{
+	SkeletalMeshComponent->bUseAttachParentBound = true;
+	SkeletalMeshComponent->bUseBoundsFromLeaderPoseComponent = true;
+
+	this->RemoveOwnedComponent( SkeletalMeshComponent );
+	SkeletalMeshComponent->CreationMethod = EComponentCreationMethod::Instance;
+	this->AddOwnedComponent( SkeletalMeshComponent );
+
+	SkeletalMeshComponent->AttachToComponent( MainBody, FAttachmentTransformRules::SnapToTargetIncludingScale );
+
+	SkeletalMeshComponent->RegisterComponent();
+}
+
+void AHuman::RefreshLeaderComponent( USkeletalMeshComponent* SkeletalMeshComponent )
+{
+	if( !SkeletalMeshComponent->HasValidAnimationInstance() )
+	{
+		SkeletalMeshComponent->SetLeaderPoseComponent( MainBody );
+	}
+	else
+	{
+		SkeletalMeshComponent->SetLeaderPoseComponent( nullptr );
+	}
+}
+
+void AHuman::UpdateSkeletalMeshMaterials( USkeletalMeshComponent* SkeletalMeshComponent, TArray<TSoftObjectPtr<UMaterialInstance>>& Materials )
+{
+	int32 MeshMaterialNum = SkeletalMeshComponent->GetSkeletalMeshAsset()->GetNumMaterials();
+	for( uint8 MaterialIndex = 0; MaterialIndex < Materials.Num(); MaterialIndex++ )
+	{
+		if( MaterialIndex >= MeshMaterialNum ) return;
+
+		if( Materials[MaterialIndex] )
+		{
+			UMaterialInstance* Material = Materials[MaterialIndex].LoadSynchronous();
+			if( Material ) SkeletalMeshComponent->SetMaterial( MaterialIndex, Material );
+		}
+	}
+}
+
+void AHuman::UpdateSkeletalMeshCustomData( USkeletalMeshComponent* SkeletalMeshComponent, TArray<float>& CustomDatas )
+{
+	for( int32 DataIndex = 0; DataIndex < CustomDatas.Num(); DataIndex++ )
+	{
+		SkeletalMeshComponent->SetCustomPrimitiveDataFloat(DataIndex + FSkinFaceCustomData::StartingIndexSkin, CustomDatas[DataIndex]);
+	}
+}
+
+void AHuman::UpdateHeadAnimInstance()
+{
+	if( HeadMeshData )
+	{
+		if( USkeletalMeshComponent* HeadComponent = GetHeadComponent() )
+		{
+
+			HeadComponent->SetAnimInstanceClass( HeadMeshData->HeadAnimationBlueprint );
+		}
+	}
+}
+
+USkeletalMeshComponent* AHuman::GetHeadComponent() const
+{
+	for( int32 ComponentIndex = 0; ComponentIndex < SkeletalComponents.Num(); ComponentIndex++ )
+	{
+		if( SkeletalComponents[ComponentIndex]->GetFName() == UEnum::GetValueAsName(EBodyPartType::Head) ) return SkeletalComponents[ComponentIndex];
+	}
+
+	return nullptr;
+}
+
+void AHuman::SetHumanBodyData( const FHumanBodyData& InHumanBodyData )
+{
+	HumanBodyData = HumanBodyData;
+}
+
+USkeletalMeshComponent* AHuman::GetMainBodyComponent() const
+{
+	return MainBody;
+}
+
+#if WITH_EDITORONLY_DATA
+void AHuman::UpdateMainBodyAnimation( UAnimSequence* AnimationToPlay, bool ShowControlRig, float InAnimPlayRate )
+{
+	MainBodyAnimationToPlay = AnimationToPlay;
+	bShowControlRig = ShowControlRig;
+	AnimPlayRate = InAnimPlayRate;
+}
+#endif // WITH_EDITORONLY_DATA

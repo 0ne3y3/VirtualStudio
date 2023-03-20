@@ -48,50 +48,130 @@ float FEyeCustomData::GetCustomDataValue( int32 EyeIndex, int32 CustomDataIndex 
 	}
 }
 
-
-void UHumanBodyData::CopyDataFromInterface( FHumanBodyInterface& HumanBodyInterface )
+float FSkinFaceCustomData::GetSkinCustomDataValue( int32 CustomDataIndex )
 {
-	PresetName = HumanBodyInterface.PresetName;
-	BodyMorphology = HumanBodyInterface.BodyMorphology;
-	BodyMeshes = HumanBodyInterface.BodyMeshes;
-	BodyAccessories = HumanBodyInterface.BodyAccessories;
-	SkinAndFaceCustomData = HumanBodyInterface.SkinAndFaceCustomData;
-	HairCustomData = HumanBodyInterface.HairCustomData;
-	EyeCustomData = HumanBodyInterface.EyeCustomData;
-	ClothCustomData = HumanBodyInterface.ClothCustomData;
-
-	bIsPreset = false;
+	switch( CustomDataIndex )
+	{
+		case 9:
+			return SkinAtlasCurve;
+		case 10:
+			return BaseSpecular;
+		case 11:
+			return BaseRoughness;
+		case 12:
+			return BaseMetallic;
+		case 13:
+			return BaseSubsurfaceOpacity;
+		case 14:
+			return SubsurfaceColor.R;
+		case 15:
+			return SubsurfaceColor.G;
+		case 16:
+			return SubsurfaceColor.B;
+		default:
+		return 0;
+	}
 }
 
-void UHumanBodyData::CopyDataFromAnotherDataAsset( UHumanBodyData* InHumanBodyData )
+float FSkinFaceCustomData::GetBodyCustomDataValue( int32 CustomDataIndex )
 {
-	if( !InHumanBodyData ) return;
-
-	PresetName = InHumanBodyData->PresetName;
-	BodyMorphology = InHumanBodyData->BodyMorphology;
-	BodyMeshes = InHumanBodyData->BodyMeshes;
-	BodyAccessories = InHumanBodyData->BodyAccessories;
-	SkinAndFaceCustomData = InHumanBodyData->SkinAndFaceCustomData;
-	HairCustomData = InHumanBodyData->HairCustomData;
-	EyeCustomData = InHumanBodyData->EyeCustomData;
-	ClothCustomData = InHumanBodyData->ClothCustomData;
-
-	bIsPreset = false;
+	switch( CustomDataIndex )
+	{
+		case 17:
+		return HandNailsColor.R;
+		case 18:
+		return HandNailsColor.G;
+		case 19:
+		return HandNailsColor.B;
+		case 20:
+		return FeetNailsColor.R;
+		case 21:
+		return FeetNailsColor.G;
+		case 22:
+		return FeetNailsColor.B;
+		default:
+		return 0;
+	}
 }
 
-void UHumanBodyData::CopyDataToInterface( FHumanBodyInterface& HumanBodyInterface )
+float FSkinFaceCustomData::GetFaceCustomDataValue( int32 CustomDataIndex )
 {
-	HumanBodyInterface.PresetName = PresetName;
-	HumanBodyInterface.BodyMorphology = BodyMorphology;
-	HumanBodyInterface.BodyMeshes = BodyMeshes;
-	HumanBodyInterface.BodyAccessories = BodyAccessories;
-	HumanBodyInterface.SkinAndFaceCustomData = SkinAndFaceCustomData;
-	HumanBodyInterface.HairCustomData = HairCustomData;
-	HumanBodyInterface.EyeCustomData = EyeCustomData;
-	HumanBodyInterface.ClothCustomData = ClothCustomData;
+	switch( CustomDataIndex )
+	{
+		case 17:
+		return EyelashColorCurve;
+		case 18:
+		return EyebrowColorCurve;
+		case 19:
+		return InsideMouthColor.R;
+		case 20:
+		return InsideMouthColor.G;
+		case 21:
+		return InsideMouthColor.B;
+		case 22:
+		return CheekColor.R;
+		case 23:
+		return CheekColor.G;
+		case 24:
+		return CheekColor.B;
+		case 25:
+		return MascaraColorCurve;
+		default:
+		return 0;
+	}
 }
 
-FBodyMesh* UHumanBodyData::GetMainBody()
+TArray<float> FSkinFaceCustomData::CombineBodyData()
 {
-	return BodyMeshes.FindByPredicate( []( const FBodyMesh& InBodyMesh ){ return InBodyMesh.MeshData->MeshType == EBodyPartType::MainBody; });
+	TArray<float> ValueArray;
+	uint32 EndIndexSkin = StartingIndexSkin + 7;
+
+	for( uint32 DataIndex = StartingIndexSkin; DataIndex <= EndingIndexBody; DataIndex++ )
+	{
+		if( DataIndex <= EndIndexSkin )
+		{
+			ValueArray.Add( GetSkinCustomDataValue( DataIndex ) );
+		}
+		else
+		{
+			ValueArray.Add( GetBodyCustomDataValue( DataIndex ) );
+		}
+	}
+
+	return ValueArray;
+}
+
+TArray<float> FSkinFaceCustomData::CombineFaceData()
+{
+	TArray<float> ValueArray;
+	uint32 EndIndexSkin = StartingIndexSkin + 7;
+
+	for( uint32 DataIndex = StartingIndexSkin; DataIndex <= EndingIndexFace; DataIndex++ )
+	{
+		if( DataIndex <= EndIndexSkin )
+		{
+			ValueArray.Add( GetSkinCustomDataValue( DataIndex ) );
+		}
+		else
+		{
+			ValueArray.Add( GetFaceCustomDataValue( DataIndex ) );
+		}
+	}
+
+	return ValueArray;
+}
+
+bool FHumanBodyData::IsCustomData() const
+{
+	return PresetName == "Custom";
+}
+
+FModularSkeletalMeshData FHumanBodyData::GetHeadData()
+{
+	for( FModularSkeletalMeshData& SkeletalMeshData : SkeletalMeshes )
+	{
+		if( Cast<UHeadMeshData>( SkeletalMeshData.MeshData )) return SkeletalMeshData;
+	}
+
+	return FModularSkeletalMeshData();
 }

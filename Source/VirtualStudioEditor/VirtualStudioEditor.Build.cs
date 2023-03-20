@@ -14,10 +14,10 @@ public class VirtualStudioEditor : ModuleRules
 			}
 		);
 
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EditorFramework", "VirtualStudio", "Characters", "UMGEditor", "EditorScriptingUtilities" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EditorFramework", "VirtualStudio", "UMGEditor", "EditorScriptingUtilities" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "UnrealEd", "UMG", "Blutility" });
-        // "Slate", "SlateCore" 
+        // "Slate", "SlateCore"
 
         // Uncomment if you are using online features
         // PrivateDependencyModuleNames.Add("OnlineSubsystem");

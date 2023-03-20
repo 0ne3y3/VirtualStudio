@@ -13,5 +13,6 @@ public class VirtualStudioEditorTarget : TargetRules
 		ExtraModuleNames.Add("VirtualStudio");
 		ExtraModuleNames.Add("VirtualStudioEditor");
 		ExtraModuleNames.Add("Characters");
+		ExtraModuleNames.Add("CharactersEditor");
 	}
 }
