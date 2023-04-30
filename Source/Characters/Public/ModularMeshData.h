@@ -24,7 +24,6 @@ UENUM( BlueprintType )
 enum class EBodyPartType : uint8
 {
 	MainBody,
-	Eye,
 	Head,
 	Hair,
 	Torso,
@@ -122,6 +121,12 @@ struct CHARACTERS_API FEyeCustomData
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|Material", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
 	int32 MaterialIndex = 0;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|Material", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
+	float MaxCryingEffect = 0.15f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|Material" )
+	TArray<FLinearColor> ScleraColorBleeding;
+
 	float GetCustomDataValue(int32 EyeIndex, int32 CustomDataIndex);
 };
 
@@ -158,9 +163,9 @@ struct CHARACTERS_API FSkinFaceCustomData
 
 	GENERATED_USTRUCT_BODY()
 
-	static const int32 StartingIndexSkin = 9;
-	static const int32 EndingIndexBody = 22;
-	static const int32 EndingIndexFace = 25;
+	static const int32 StartingIndexSkin = 10;
+	static const int32 EndingIndexBody = 21;
+	static const int32 EndingIndexFace = 29;
 
 	public:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Skin|CustomData|Color")
@@ -182,10 +187,16 @@ struct CHARACTERS_API FSkinFaceCustomData
 	FLinearColor SubsurfaceColor;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body|CustomData|Nail" )
-	FLinearColor HandNailsColor;
+	int32 HandLeftNailColorCurve;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body|CustomData|Nail" )
-	FLinearColor FeetNailsColor;
+	int32 HandRightNailColorCurve;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body|CustomData|Nail" )
+	int32 FootLeftNailColorCurve;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body|CustomData|Nail" )
+	int32 FootRightNailColorCurve;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face|CustomData|Color" )
 	int32 EyelashColorCurve;
@@ -198,6 +209,9 @@ struct CHARACTERS_API FSkinFaceCustomData
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face|CustomData|Color" )
 	FLinearColor CheekColor;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face|CustomData|Color" )
+	FLinearColor LipsColor;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face|CustomData|Color" )
 	int32 MascaraColorCurve;

@@ -114,6 +114,57 @@ struct CHARACTERS_API FARKitCurveData
 };
 
 /**
+* FDynamicMaterialData
+*
+* Structure containing common dynamic data for material's custom data, like crying effect \ eyes bleeding \ rain and such.
+*/
+USTRUCT( BlueprintType )
+struct CHARACTERS_API FDynamicMaterialData
+{
+	GENERATED_USTRUCT_BODY()
+
+	public:
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
+	float CryingEffect = 0;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face", meta = ( ClampMin = 0, ClampMax = 2, UIMin = 0, UIMax = 2 ) )
+	float YandereMadEffect = 0;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes", meta = ( ClampMin = 0, ClampMax = 2, UIMin = 0, UIMax = 2 ) )
+	TArray<float> EyesEmissive;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes", meta = ( ClampMin = -1, ClampMax = 1, UIMin = -1, UIMax = 1 ) )
+	TArray<float> PupilScale;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
+	TArray<float> EyesBleeding;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
+	float GlobalWetnessOpacity = 1.f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body" )
+	bool bIsUnderRoof = false;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body", meta = ( ClampMin = 0, UIMin = 0 ) )
+	float WetnessZHeight = 0.f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body", meta = ( ClampMin = 0, UIMin = 0 ) )
+	float WetnessZOpacity = 1.f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Mask", meta = ( ClampMin = 0, UIMin = 0 ) )
+	float MaskHeight = 0.f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Mask")
+	FVector SphereMaskPosition;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Mask", meta = ( ClampMin = 0, UIMin = 0 ) )
+	float SphereMaskRadius = 0.f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body" )
+	bool bReverseMask = false;
+};
+
+/**
 * UARKitPresetData
 *
 * Mutable data asset that contains all ARKit curves data. Create preset for runtime control rig. /!\ Do not change values at runtime.

@@ -164,8 +164,11 @@ class CHARACTERS_API AHuman : public ALivingBeing
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Character|Data" )
 	TObjectPtr<UHeadMeshData> HeadMeshData;
 	
-	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Animation" )
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Character|Data" )
 	TObjectPtr<UMainBodyPostProcessAnimationData> MainBodyPP;
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Character|Data" )
+	FDynamicMaterialData DynamicMaterialData;
 };
 
 

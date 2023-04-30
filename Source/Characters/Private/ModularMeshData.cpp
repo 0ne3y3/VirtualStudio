@@ -52,21 +52,21 @@ float FSkinFaceCustomData::GetSkinCustomDataValue( int32 CustomDataIndex )
 {
 	switch( CustomDataIndex )
 	{
-		case 9:
-			return SkinAtlasCurve;
 		case 10:
-			return BaseSpecular;
+			return SkinAtlasCurve;
 		case 11:
-			return BaseRoughness;
+			return BaseSpecular;
 		case 12:
-			return BaseMetallic;
+			return BaseRoughness;
 		case 13:
-			return BaseSubsurfaceOpacity;
+			return BaseMetallic;
 		case 14:
-			return SubsurfaceColor.R;
+			return BaseSubsurfaceOpacity;
 		case 15:
-			return SubsurfaceColor.G;
+			return SubsurfaceColor.R;
 		case 16:
+			return SubsurfaceColor.G;
+		case 17:
 			return SubsurfaceColor.B;
 		default:
 		return 0;
@@ -77,18 +77,14 @@ float FSkinFaceCustomData::GetBodyCustomDataValue( int32 CustomDataIndex )
 {
 	switch( CustomDataIndex )
 	{
-		case 17:
-		return HandNailsColor.R;
 		case 18:
-		return HandNailsColor.G;
+		return HandLeftNailColorCurve;
 		case 19:
-		return HandNailsColor.B;
+		return HandRightNailColorCurve;
 		case 20:
-		return FeetNailsColor.R;
+		return FootLeftNailColorCurve;
 		case 21:
-		return FeetNailsColor.G;
-		case 22:
-		return FeetNailsColor.B;
+		return FootRightNailColorCurve;
 		default:
 		return 0;
 	}
@@ -98,23 +94,29 @@ float FSkinFaceCustomData::GetFaceCustomDataValue( int32 CustomDataIndex )
 {
 	switch( CustomDataIndex )
 	{
-		case 17:
-		return EyelashColorCurve;
 		case 18:
-		return EyebrowColorCurve;
+		return EyelashColorCurve;
 		case 19:
-		return InsideMouthColor.R;
+		return EyebrowColorCurve;
 		case 20:
-		return InsideMouthColor.G;
+		return InsideMouthColor.R;
 		case 21:
-		return InsideMouthColor.B;
+		return InsideMouthColor.G;
 		case 22:
-		return CheekColor.R;
+		return InsideMouthColor.B;
 		case 23:
-		return CheekColor.G;
+		return CheekColor.R;
 		case 24:
-		return CheekColor.B;
+		return CheekColor.G;
 		case 25:
+		return CheekColor.B;
+		case 26:
+		return LipsColor.R;
+		case 27:
+		return LipsColor.G;
+		case 28:
+		return LipsColor.B;
+		case 29:
 		return MascaraColorCurve;
 		default:
 		return 0;

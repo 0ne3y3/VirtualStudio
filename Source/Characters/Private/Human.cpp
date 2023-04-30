@@ -181,7 +181,14 @@ void AHuman::UpdateNumberOfEyeInstance( int32 NumberOfEyes, USkeletalMeshCompone
 		{
 			Eyes->RemoveInstance( EyeIndex );
 		}
-	}	
+	}
+
+	DynamicMaterialData.EyesBleeding.Empty();
+	DynamicMaterialData.EyesBleeding.AddUninitialized( NumberOfEyes );
+	DynamicMaterialData.PupilScale.Empty();
+	DynamicMaterialData.PupilScale.AddUninitialized( NumberOfEyes );
+	DynamicMaterialData.EyesEmissive.Empty();
+	DynamicMaterialData.EyesEmissive.AddUninitialized( NumberOfEyes );
 }
 
 void AHuman::UpdateEyesMaterial(int32 MaterialIndex)
@@ -260,12 +267,10 @@ void AHuman::UpdateEyeDefaultPosition()
 
 void AHuman::UpdateEyes()
 {
-	// TODO -> DO ALL CALCULATION IN SHADER ? STILL A LOT OF CUSTOM DATA AVAILABLE
-
 	USkeletalMeshComponent* HeadComponent = GetHeadComponent();
 	if( HeadComponent && HeadMeshData )
 	{
-		/* Iris position(in - out, up - down) : Lerp between base position (iris offset) and max position set in head data
+		/* Iris position(in - out, up - down) : Lerp between base position (default iris offset) and max position set in head data
 		*/
 
 		FVector2D IrisPositionLeft( HumanBodyData.EyeCustomData.GetCustomDataValue( 0, 6 ), HumanBodyData.EyeCustomData.GetCustomDataValue( 0, 7 ) );
@@ -289,7 +294,7 @@ void AHuman::UpdateEyes()
 			IrisOffsetYLeft = FMath::Lerp( IrisPositionLeft, HeadMeshData->IrisMaxPositionDown, EyeLookDownLeft );
 		}
 
-		IrisPositionLeft += IrisOffsetXLeft + IrisOffsetYLeft;
+		IrisPositionLeft += (IrisOffsetXLeft + IrisOffsetYLeft) - IrisPositionLeft;
 
 		FVector2D IrisPositionRight( HumanBodyData.EyeCustomData.GetCustomDataValue( 1, 6 ), HumanBodyData.EyeCustomData.GetCustomDataValue( 1, 7 ) );
 		FVector2D IrisOffsetXRight = FVector2D::Zero();
@@ -312,9 +317,9 @@ void AHuman::UpdateEyes()
 			IrisOffsetYRight = FMath::Lerp( IrisPositionRight, HeadMeshData->IrisMaxPositionDown, EyeLookDownRight );
 		}
 
-		IrisPositionRight += IrisOffsetXRight + IrisOffsetYRight;
+		IrisPositionRight += (IrisOffsetXRight + IrisOffsetYRight) - IrisPositionRight;
 
-		/* Iris scale : if eye is wide, scale down the iris for a scared/suprise effect
+		/* Iris scale : if eye is wide, scale down the iris for a scared/suprise effect. Move down the eyelash shadow (Sclera dark corner)
 		*/
 
 		float EyeWideLeft = HeadComponent->GetMorphTarget( "EyeWideLeft" );
@@ -327,11 +332,42 @@ void AHuman::UpdateEyes()
 
 		float EyelashPositionLeft = HumanBodyData.EyeCustomData.GetCustomDataValue( 0, 17 ) + ( -EyeWideLeft )  + HeadComponent->GetMorphTarget("EyeBlinkLeft");
 		float EyelashPositionRight = HumanBodyData.EyeCustomData.GetCustomDataValue( 1, 17 ) + ( -EyeWideRight )  + HeadComponent->GetMorphTarget("EyeBlinkRight");
+		
+		/* Crying effect : remap 0-1 range to 0 - Crying max range (most likely 0 - 0.15)
+		*/
+		float CryingEffectCoef = FMath::GetMappedRangeValueClamped(TRange<float>(0.f, 1.f), TRange<float>( 0.f, HumanBodyData.EyeCustomData.MaxCryingEffect ), DynamicMaterialData.CryingEffect);
 
-		// Set custom data for all instances
 		int32 NumberOfEyes = Eyes->GetInstanceCount();
+
+		/* Bleeding eye : if one eye is bleeding, lerp between base color and bleeding color
+		*/
+		TArray<FLinearColor> BleedingColor;
+		TArray<float> TextureOpacity;
 		for( uint8 EyeIndex = 0; EyeIndex < NumberOfEyes; EyeIndex++ )
 		{
+			if( HumanBodyData.EyeCustomData.ScleraColorBleeding.IsValidIndex( EyeIndex ) && DynamicMaterialData.EyesBleeding.IsValidIndex( EyeIndex ) )
+			{
+				BleedingColor.Add( FMath::Lerp( HumanBodyData.EyeCustomData.ScleraColor[EyeIndex], HumanBodyData.EyeCustomData.ScleraColorBleeding[EyeIndex], DynamicMaterialData.EyesBleeding[EyeIndex] ) );
+				TextureOpacity.Add( DynamicMaterialData.EyesBleeding[EyeIndex] );
+			}
+			else
+			{
+				BleedingColor.Add( HumanBodyData.EyeCustomData.ScleraColor[EyeIndex] );
+				TextureOpacity.Add( HumanBodyData.EyeCustomData.ScleraTextureOpacity[EyeIndex] );
+			}
+		}
+
+		// Set custom data for all instances
+		for( uint8 EyeIndex = 0; EyeIndex < NumberOfEyes; EyeIndex++ )
+		{
+			Eyes->SetCustomDataValue( EyeIndex, 8, BleedingColor[EyeIndex].R );
+			Eyes->SetCustomDataValue( EyeIndex, 9, BleedingColor[EyeIndex].G );
+			Eyes->SetCustomDataValue( EyeIndex, 10, BleedingColor[EyeIndex].B );
+			Eyes->SetCustomDataValue( EyeIndex, 11, TextureOpacity[EyeIndex] );
+			Eyes->SetCustomDataValue( EyeIndex, 19, CryingEffectCoef );
+			if( DynamicMaterialData.EyesEmissive.IsValidIndex( EyeIndex ) ) Eyes->SetCustomDataValue( EyeIndex, 20, DynamicMaterialData.EyesEmissive[EyeIndex] ); // Eye emissive
+			if( DynamicMaterialData.PupilScale.IsValidIndex( EyeIndex )) Eyes->SetCustomDataValue( EyeIndex, 21, 1 + DynamicMaterialData.PupilScale[EyeIndex]); // Eye pupil scale
+
 			if( EyeIndex % 2 > 0 )
 			{
 				// right eye
@@ -422,7 +458,7 @@ void AHuman::SetupOneSkeletalMeshComponent( FModularSkeletalMeshData& SkeletalMe
 
 USkeletalMeshComponent* AHuman::CreateSkeletalMeshComponent( FName BodyPartName )
 {
-	// check if the body part already exist, return it if it's already here
+	// check if the body part already exist, return it if it's already created
 	for( USkeletalMeshComponent* SkeletalComponent : SkeletalComponents )
 	{
 		if( BodyPartName == SkeletalComponent->GetFName() )
