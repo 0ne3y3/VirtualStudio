@@ -1,0 +1,52 @@
+{
+	"FileVersion": 1,
+	"Version": 7,
+	"VersionName": "1.1.3",
+	"FriendlyName": "Red Tech Art Tools",
+	"Description": "Open Source Tech Art Tools for use in UE5. Material Editing, Geometry Scripting, Content Management and more.",
+	"Category": "Tech Art",
+	"CreatedBy": "Ryan DowlingSoka",
+	"CreatedByURL": "https://www.ryandowlingsoka.com",
+	"DocsURL": "https://github.com/Ryan-DowlingSoka/RedTechArtTools/blob/main/README.md",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"EnabledByDefault": false,
+	"Modules": [
+		{
+			"Name": "RedTechArtToolsRuntime",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "RedTechArtToolsEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	],    
+	"Plugins": [
+        {
+            "Name": "EditorScriptingUtilities",
+            "Enabled": true
+        },
+		{
+			"Name": "CommonUI",
+			"Enabled": true
+		},
+		{
+			"Name": "PythonScriptPlugin",
+			"Enabled": true
+		},
+		{
+			"Name": "GeometryScripting",
+			"Enabled": true
+		},
+		{
+			"Name": "SlateScripting",
+			"Enabled": true
+		}
+	]
+}

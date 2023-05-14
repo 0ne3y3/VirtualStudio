@@ -41,16 +41,14 @@ void ALiveLinkHuman::Tick( float DeltaTime )
 				StaticData->FindPropertyValue( *FrameData, "headPitch", TempHeadPitch );
 				StaticData->FindPropertyValue( *FrameData, "headRoll", TempHeadRoll );
 
-				HeadRoll = TempHeadYaw * 50.f;
-				HeadPitch = TempHeadRoll * 50.f;
-				HeadYaw = TempHeadPitch * -50.f;
+				HeadRotation.Roll= TempHeadYaw * 50.f;
+				HeadRotation.Pitch = TempHeadRoll * 50.f;
+				HeadRotation.Yaw = TempHeadPitch * -50.f;
 			}
 		}
 	}
 	else
 	{
-		HeadRoll = 0;
-		HeadPitch = 0;
-		HeadYaw = 0;
+		HeadRotation = FRotator::ZeroRotator;
 	}
 }

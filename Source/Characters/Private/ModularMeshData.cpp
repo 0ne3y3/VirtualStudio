@@ -3,6 +3,8 @@
 
 #include "ModularMeshData.h"
 
+DEFINE_LOG_CATEGORY_STATIC( LogCharacter, Log, All );
+
 float FEyeCustomData::GetCustomDataValue( int32 EyeIndex, int32 CustomDataIndex )
 {
 	switch( CustomDataIndex )

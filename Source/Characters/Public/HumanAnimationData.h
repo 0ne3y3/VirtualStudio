@@ -114,51 +114,99 @@ struct CHARACTERS_API FARKitCurveData
 };
 
 /**
-* FDynamicMaterialData
+* Enum for part of the body
+
+UENUM( BlueprintType )
+enum class EEffectType : uint8
+{
+	CryingEffect,
+	YandereMadEffect,
+	EyesEmissive,
+	EyesBleeding,
+	PupilScale,
+	GlobalWetness,
+	WetnessZHeight,
+	WetnessZOpacity,
+	MaskHeight,
+	SphereMaskRadius
+};
+*/
+
+/**
+* FHumanEffectState
 *
-* Structure containing common dynamic data for material's custom data, like crying effect \ eyes bleeding \ rain and such.
+* Class containing one effect state.
+
+USTRUCT( BlueprintType )
+struct CHARACTERS_API FHumanEffectState
+{
+	GENERATED_USTRUCT_BODY()
+
+	public:
+
+	UPROPERTY( BlueprintReadWrite )
+	float Goal = 0;
+
+	UPROPERTY( BlueprintReadOnly )
+	float CurrentValue = 0;
+
+	UPROPERTY( BlueprintReadOnly )
+	float CurrentTime = 0;
+
+	UPROPERTY( BlueprintReadWrite )
+	float Duration = 0;
+
+	UPROPERTY( BlueprintReadOnly )
+	bool bIsActive = false;
+};
+*/
+
+/**
+* FHumanStateData
+*
+* Structure containing common dynamic data for a human state, like is crying \ eyes bleeding \ is wet \ is under a roof for rain and such.
 */
 USTRUCT( BlueprintType )
-struct CHARACTERS_API FDynamicMaterialData
+struct CHARACTERS_API FHumanStateData
 {
 	GENERATED_USTRUCT_BODY()
 
 	public:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float CryingEffect = 0;
+	float CryingEffect;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face", meta = ( ClampMin = 0, ClampMax = 2, UIMin = 0, UIMax = 2 ) )
-	float YandereMadEffect = 0;
+	float YandereMadEffect;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes", meta = ( ClampMin = 0, ClampMax = 2, UIMin = 0, UIMax = 2 ) )
 	TArray<float> EyesEmissive;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes", meta = ( ClampMin = -1, ClampMax = 1, UIMin = -1, UIMax = 1 ) )
-	TArray<float> PupilScale;
-
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
 	TArray<float> EyesBleeding;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes", meta = ( ClampMin = 0, ClampMax = 2, UIMin = 0, UIMax = 2 ) )
+	TArray<float> PupilScale;
+
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float GlobalWetnessOpacity = 1.f;
+	float GlobalWetness;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body" )
 	bool bIsUnderRoof = false;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body", meta = ( ClampMin = 0, UIMin = 0 ) )
-	float WetnessZHeight = 0.f;
+	float WetnessZHeight;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body", meta = ( ClampMin = 0, UIMin = 0 ) )
-	float WetnessZOpacity = 1.f;
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
+	float WetnessZOpacity;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Mask", meta = ( ClampMin = 0, UIMin = 0 ) )
-	float MaskHeight = 0.f;
+	float MaskHeight;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Mask")
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Mask" )
 	FVector SphereMaskPosition;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Mask", meta = ( ClampMin = 0, UIMin = 0 ) )
-	float SphereMaskRadius = 0.f;
+	float SphereMaskRadius;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body" )
 	bool bReverseMask = false;

@@ -166,6 +166,8 @@ struct CHARACTERS_API FSkinFaceCustomData
 	static const int32 StartingIndexSkin = 10;
 	static const int32 EndingIndexBody = 21;
 	static const int32 EndingIndexFace = 29;
+	static const int32 MaxCustomDataBody = 28;
+	static const int32 MaxCustomDataFace = 35;
 
 	public:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Skin|CustomData|Color")

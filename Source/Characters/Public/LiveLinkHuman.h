@@ -24,31 +24,27 @@ class CHARACTERS_API ALiveLinkHuman : public AHuman
 
 	FORCEINLINE UARKitPresetData* GetHeadAnimationData() const override { return FaceARKitData; };
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Animation" )
-	bool bUseHeadRotation = true;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Animation" )
-	bool bReinitializeCurveData;
-
-	//Cached information to generate LiveLinkData
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Animation" )
-	FName FaceARKitSubjectName;
-
 	// Called every frame
 	virtual void Tick( float DeltaTime ) override;
 
 	protected:
-	UPROPERTY( VisibleDefaultsOnly, BlueprintReadOnly, Category = "ARKitData" )
-	float HeadYaw;
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Animation" )
+	bool bUseHeadRotation = true;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Animation" )
+	FName FaceARKitSubjectName;
 
 	UPROPERTY( VisibleDefaultsOnly, BlueprintReadOnly, Category = "ARKitData" )
-	float HeadPitch;
-
-	UPROPERTY( VisibleDefaultsOnly, BlueprintReadOnly, Category = "ARKitData" )
-	float HeadRoll;
+	FRotator HeadRotation;
 
 	UPROPERTY( VisibleDefaultsOnly, BlueprintReadWrite, Category = "Animation" )
 	TObjectPtr<UARKitPresetData> FaceARKitData;
 
+	private:
 	class ILiveLinkClient* CachedLiveLinkClient;
+
+	#if WITH_EDITORONLY_DATA
+		public:
+		FORCEINLINE virtual void SetArkitName_Editor( FName InName ) override { FaceARKitSubjectName = InName ;};
+	#endif
 };

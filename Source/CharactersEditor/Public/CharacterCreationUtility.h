@@ -29,15 +29,31 @@ class CHARACTERSEDITOR_API UCharacterCreationUtility : public UEditorUtilityWidg
 	void InitializeEditorWidget();
 
 	UFUNCTION()
-	void UpdateButtonClicked();
-
-	UFUNCTION()
 	void LoadButtonClicked();
 
 	UFUNCTION()
 	void SaveButtonClicked();
 
 	bool IsAnimSequenceCompatible();
+
+	virtual void NativeConstruct() override;
+
+	UFUNCTION( BlueprintCallable )
+	void UpdateCharacter();
+
+	UFUNCTION( BlueprintCallable )
+	void UpdateEyesArray();
+
+	UFUNCTION( BlueprintCallable )
+	void OnPropertyChangedMainPanel( FName PropertyName );
+
+	UFUNCTION( BlueprintCallable )
+	void OnPropertyChangedAnimation( FName PropertyName );
+
+	UFUNCTION( BlueprintCallable )
+	void OnPropertyChangedEditorPreview( FName PropertyName );
+
+
 
 	protected :
 	
@@ -48,10 +64,10 @@ class CHARACTERSEDITOR_API UCharacterCreationUtility : public UEditorUtilityWidg
 	TObjectPtr<UDetailsView> AnimationDetailsView;
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, meta = ( BindWidget ) )
-	TObjectPtr<UButton> SaveButton;
+	TObjectPtr<UDetailsView> EditorDetailsView;
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, meta = ( BindWidget ) )
-	TObjectPtr<UButton> UpdateButton;
+	TObjectPtr<UButton> SaveButton;
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, meta = ( BindWidget ) )
 	TObjectPtr<UButton> LoadButton;
@@ -59,20 +75,56 @@ class CHARACTERSEDITOR_API UCharacterCreationUtility : public UEditorUtilityWidg
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
 	FHumanBodyData CharacterProperties;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Character" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Character", meta = ( DisplayName = "Class to use" ) )
 	TSubclassOf<AHuman> CharacterClass;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Animation" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Animation", meta = ( DisplayName = "MainBody animation preview" ) )
 	TObjectPtr<UAnimSequence> AnimationPreview;
 
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Animation" )
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Animation", meta = ( DisplayName = "MainBody animation speed" ) )
+	float AnimPlayRate = 1.f;
+
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Animation", meta = ( DisplayName = "ABP used for the MainBody" ) )
 	TSubclassOf<UAnimInstance> AnimationBP;
 
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Animation" )
-	bool bShowControlRig = true;
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Animation", meta = ( DisplayName = "ARKit device name" ) )
+	FName ARKitName;
 
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Animation" )
-	float AnimPlayRate = 1.f;
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Effect", meta = ( DisplayName = "Crying effect", ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
+	float CryingEffect = 0.f;
+
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Effect", meta = ( DisplayName = "Yandere / Mad effect", ClampMin = 0, ClampMax = 2, UIMin = 0, UIMax = 2 ) )
+	float YanMadEffect = 0.f;
+
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Effect", meta = ( DisplayName = "Eyes bleeding", ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
+	TArray<float> EyesBleeding;
+
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Effect", meta = ( DisplayName = "Eyes emissive", ClampMin = 0, ClampMax = 2, UIMin = 0, UIMax = 2 ) )
+	TArray<float> EyesEmissive;
+
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Effect", meta = ( DisplayName = "Pupil Scale", ClampMin = 0, ClampMax = 2, UIMin = 0, UIMax = 2 ) )
+	TArray<float> PupilScale;
+
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Wetness", meta = ( DisplayName = "Global wetness", ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
+	float MainWetness = 0.f;
+
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Wetness", meta = ( DisplayName = "Height wetness (in UE unit)", ClampMin = 0, UIMin = 0 ) )
+	float HeightWetness = 0.0f;
+
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Wetness", meta = ( DisplayName = "Height wetness opacity", ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
+	float HeightWetnessOpacity = 0.f;
+
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Wetness", meta = ( DisplayName = "Is under roof" ) )
+	bool UnderRoof = false;
+
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Mask", meta = ( DisplayName = "Height mask (in UE unit)" ) )
+	float HeightMask = 0.f;
+
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Mask", meta = ( DisplayName = "Sphere mask position" ) )
+	FVector SphereMaskPosition;
+
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Mask", meta = ( DisplayName = "Sphere mask radius" ) )
+	float SphereMaskRadius = 0.f;
 
 	TObjectPtr<AHuman> CharacterSpawned = nullptr;
 };
