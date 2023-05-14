@@ -37,7 +37,6 @@ TSharedRef<SWidget> URedMultiLineEditableTextBox::RebuildWidget()
 
 	MyEditableTextBlock = SNew(SMultiLineEditableTextBox)
 	.Style(&WidgetStyle)
-	.TextStyle(&WidgetStyle.TextStyle)
 	.AllowContextMenu(AllowContextMenu)
 	.IsReadOnly( GetIsReadOnly() )
 //		.MinDesiredWidth(MinimumDesiredWidth)
@@ -52,6 +51,8 @@ TSharedRef<SWidget> URedMultiLineEditableTextBox::RebuildWidget()
 	.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
 	.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
 	.ModiferKeyForNewLine(bShiftEnterForNewLine ? EModifierKey::Shift : EModifierKey::None);
+
+	MyEditableTextBlock.Get()->SetTextStyle( &WidgetStyle.TextStyle );
 
 	return MyEditableTextBlock.ToSharedRef();
 }

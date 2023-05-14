@@ -33,12 +33,12 @@ void URedEditorIconWidget::SynchronizeProperties()
 	{
 		if (const FString Ext = FPaths::GetExtension(IconPath.Path); Ext == "svg")
 		{
-			IconBrush.Reset(new FSlateVectorImageBrush(IconPath.Path, IconSize, Brush.TintColor, Brush.Tiling));
+			IconBrush.Reset(new FSlateVectorImageBrush(IconPath.Path, IconSize, GetBrush().TintColor, GetBrush().Tiling));
 		}
 		else if (Ext == "png")
 		{
 			IconBrush.Reset(new FSlateDynamicImageBrush(FName(*IconPath.Path), IconSize,
-			                                            Brush.TintColor.GetSpecifiedColor(), Brush.Tiling));
+							 GetBrush().TintColor.GetSpecifiedColor(), GetBrush().Tiling));
 		}
 		if (IconBrush != nullptr)
 		{

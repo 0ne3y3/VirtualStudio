@@ -207,7 +207,7 @@ bool UCharacterCreationUtility::IsAnimSequenceCompatible()
 		USkeletalMesh* SkeletalMesh = BodyMesh.MeshData->Mesh.LoadSynchronous();
 		if( SkeletalMesh )
 		{
-			if( SkeletalMesh->GetSkeleton()->IsCompatibleSkeletonByAssetData( FAssetData( AnimationPreview ) ) )
+			if( SkeletalMesh->GetSkeleton()->IsCompatibleForEditor( FAssetData( AnimationPreview ) ) )
 			{
 				return true;
 			}
