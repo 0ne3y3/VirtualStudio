@@ -34,6 +34,11 @@ class CHARACTERS_API AHuman : public ALivingBeing
 	/* Function called whenever this actor is being removed from a level */
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
+	bool ShouldTickIfViewportsOnly() const override;
+
+	//FORCEINLINE virtual bool IsTickableWhenPaused() const;
+	//FORCEINLINE virtual bool IsTickableInEditor() const;
+
 	/* Setup the main body skeletal mesh and its materials/customdata, called OnConstruction script. */
 	UFUNCTION( BlueprintCallable )
 	bool SetupMainBody( USkeletalMeshData* MeshData );
@@ -45,6 +50,10 @@ class CHARACTERS_API AHuman : public ALivingBeing
 	/* Update the main body CustomData. */
 	UFUNCTION( BlueprintCallable )
 	void UpdateMainBodyCustomData( TArray<float>& CustomDatas );
+
+	/* Update the main body CustomData for morphology. */
+	UFUNCTION( BlueprintCallable )
+	void UpdateAllMainBodyMorphology();
 
 	/* Setup the eyes and their material/customdata, called OnConstruction script. */
 	UFUNCTION( BlueprintCallable )
@@ -94,7 +103,11 @@ class CHARACTERS_API AHuman : public ALivingBeing
 
 	/* Update a skeletal mesh component custom data. */
 	UFUNCTION( BlueprintCallable )
-	void UpdateSkeletalMeshCustomData( USkeletalMeshComponent* SkeletalMeshComponent, TArray<float>& CustomDatas );
+	void UpdateSkeletalMeshCustomData( USkeletalMeshComponent* SkeletalMeshComponent, TArray<float>& CustomDatas, EBodyPartType BodyPart );
+
+	/* Update CustomData morphology for one skeletal mesh. */
+	UFUNCTION( BlueprintCallable )
+	void UpdateSkeletalMeshBodyMorphology( USkeletalMeshComponent* SkeletalMeshComponent, EBodyMorphCustomData CustomDataType, EBodyPartType BodyPart );
 
 	/* Update a skeletal mesh component custom data. */
 	UFUNCTION( BlueprintCallable )
@@ -145,9 +158,6 @@ class CHARACTERS_API AHuman : public ALivingBeing
 	void SetIsUnderRoof( bool IsUnderRoof );
 
 	UFUNCTION( BlueprintCallable )
-	void SetCryingEffect( float CryingEffectCoef );
-
-	UFUNCTION( BlueprintCallable )
 	void SetHeightMask( float HeightMask );
 
 	UFUNCTION( BlueprintCallable )
@@ -157,7 +167,7 @@ class CHARACTERS_API AHuman : public ALivingBeing
 	void SetReverseMask( bool IsMaskReverse );
 
 	UFUNCTION( BlueprintCallable )
-	void SetYanMadEffect( float YanMadEffect );
+	void SetEffect( float EffectNumber );
 
 	UFUNCTION( BlueprintCallable )
 	void SetEyesEmissive( float EmissiveCoef, TArray<int32>& EyesIndex );
@@ -211,16 +221,28 @@ class CHARACTERS_API AHuman : public ALivingBeing
 		/* Update the animation to play for MainBody. Used only by the character creator tool in editor */
 		void UpdateMainBodyAnimation( UAnimSequence* AnimationToPlay, float InAnimPlayRate, FName InIphoneName );
 
+		void SetEditorAnimationBP( TSubclassOf<UAnimInstance> InAnimationBP);
+
+		UFUNCTION( BlueprintGetter )
+		float GetAnimationPlayRate() const;
+
+		UFUNCTION( BlueprintGetter )
+		UAnimSequence* GetAnimationPreview() const;
+
 		/* Set the name for ARKit name editor */
 		FORCEINLINE virtual void SetArkitName_Editor( FName InName ) {};
 
 		protected:
-		UPROPERTY( BlueprintReadOnly )
+		UPROPERTY( BlueprintReadOnly, BlueprintGetter = GetAnimationPreview )
 		TObjectPtr<UAnimSequence> MainBodyAnimationToPlay;
 
 		UPROPERTY( BlueprintReadOnly )
+		TSubclassOf<UAnimInstance> EditorAnimationBP;
+
+		UPROPERTY( BlueprintReadOnly, BlueprintGetter = GetAnimationPlayRate )
 		float AnimPlayRate;
 
-		void DebugDatasRuntime();
+		void DebugAnimationDatasRuntime();
+		void DebugMorphTargetDatasRuntime();
 	#endif // WITH_EDITORONLY_DATA
 };

@@ -51,7 +51,7 @@ void AHuman::Tick( float DeltaTime )
 
 	UpdateEyesAnimation();
 
-	DebugDatasRuntime();
+	//DebugMorphTargetDatasRuntime();
 }
 
 void AHuman::OnConstruction( const FTransform& Transform )
@@ -90,6 +90,28 @@ void AHuman::OnConstruction( const FTransform& Transform )
 	}
 
 	bIsFirstInit = false;
+
+	#if WITH_EDITOR
+	MainBody->SetUpdateAnimationInEditor( true );
+	for(USkeletalMeshComponent* ChildComponent : SkeletalComponents )
+	{
+		ChildComponent->SetUpdateAnimationInEditor( true );
+	}
+	#endif
+
+	UE_LOG( LogCharacter, Log, TEXT( "###### ON CONSTRUCTION END %s ######" ), *GetName() );
+}
+
+bool AHuman::ShouldTickIfViewportsOnly() const
+{
+	if( GetWorld() != nullptr && GetWorld()->WorldType == EWorldType::Editor )
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 bool AHuman::SetupMainBody( USkeletalMeshData* MeshData )
@@ -118,7 +140,6 @@ bool AHuman::SetupMainBody( USkeletalMeshData* MeshData )
 			MainBody->SetCustomPrimitiveDataFloat( 27, 1.01f );
 			MainBody->SetCustomPrimitiveDataFloat( 28, 1.01f );
 
-			// Only set default CustomPrimitiveData in editor because for runtime it's useless
 			#if WITH_EDITOR
 			MainBody->SetDefaultCustomPrimitiveDataFloat( 22, 0.f );
 			MainBody->SetDefaultCustomPrimitiveDataFloat( 23, 1.01f );
@@ -128,9 +149,20 @@ bool AHuman::SetupMainBody( USkeletalMeshData* MeshData )
 			MainBody->SetDefaultCustomPrimitiveDataFloat( 27, 1.01f );
 			MainBody->SetDefaultCustomPrimitiveDataFloat( 28, 1.01f );
 			#endif
-			
+						
+			#if WITH_EDITOR
+			if( EditorAnimationBP )
+			{
+				MainBody->SetAnimInstanceClass( EditorAnimationBP );
+			}
+			else
+			{
+				MainBody->SetAnimInstanceClass( MainBodyData->BodyAnimationBlueprint );
+			}
+			#else
 			MainBody->SetAnimInstanceClass( MainBodyData->BodyAnimationBlueprint );
-
+			#endif
+			
 			MainBodyPP = MainBodyData->PPAnimationData;
 
 			return true;
@@ -187,6 +219,15 @@ void AHuman::UpdateMainBodyCustomData( TArray<float>& CustomDatas )
 		MainBody->SetDefaultCustomPrimitiveDataFloat( DataIndex + FSkinFaceCustomData::StartingIndexSkin, CustomDatas[DataIndex] );
 	}
 	#endif
+
+	UpdateAllMainBodyMorphology();
+}
+
+void AHuman::UpdateAllMainBodyMorphology()
+{
+	UpdateSkeletalMeshBodyMorphology (MainBody, EBodyMorphCustomData::Boobs, EBodyPartType::MainBody);
+	UpdateSkeletalMeshBodyMorphology( MainBody, EBodyMorphCustomData::BodyMuscle, EBodyPartType::MainBody );
+	UpdateSkeletalMeshBodyMorphology( MainBody, EBodyMorphCustomData::LegsMuscle, EBodyPartType::MainBody );
 }
 
 bool AHuman::SetupEyes( int32 NumberOfEyes, USkeletalMeshComponent* HeadComponent )
@@ -223,23 +264,23 @@ bool AHuman::SetupEyes( int32 NumberOfEyes, USkeletalMeshComponent* HeadComponen
 
 void AHuman::UpdateNumberOfEyeInstance( int32 NumberOfEyes, USkeletalMeshComponent* HeadComponent)
 {
-	if( !HeadComponent ) return;
+	if( !HeadComponent || !HeadMeshData) return;
 
 	int32 EyeLimit = FMath::Max( NumberOfEyes, Eyes->GetInstanceCount() );
 
 	for( uint8 EyeIndex = 0; EyeIndex < EyeLimit; EyeIndex++ )
 	{
-		FName EyeSocketName = FName( FString::Printf( TEXT( "eye%d" ), EyeIndex + 1 ) );
-
 		if( EyeIndex < NumberOfEyes )
 		{
+			if( !HeadMeshData->EyesTransform.IsValidIndex( EyeIndex ) ) continue;
+
 			if( Eyes->IsValidInstance( EyeIndex ) )
 			{
-				Eyes->UpdateInstanceTransform( EyeIndex, HeadComponent->GetSocketTransform( EyeSocketName, ERelativeTransformSpace::RTS_World ), true );
+				Eyes->UpdateInstanceTransform( EyeIndex, HeadMeshData->EyesTransform[EyeIndex], false);
 			}
 			else
 			{
-				Eyes->AddInstance( HeadComponent->GetSocketTransform( EyeSocketName, ERelativeTransformSpace::RTS_World ), true );
+				Eyes->AddInstance( HeadMeshData->EyesTransform[EyeIndex], false );
 			}
 		}
 		else
@@ -330,72 +371,80 @@ void AHuman::UpdateEyeDefaultPosition()
 void AHuman::UpdateEyesAnimation()
 {
 	USkeletalMeshComponent* HeadComponent = GetHeadComponent();
+	
 	if( HeadComponent && HeadMeshData )
 	{
 		if( HeadMeshData->NumberOfEyes <= 0 ) return;
 
+		UAnimInstance* HeadAnimInstance = HeadComponent->GetAnimInstance();
+		if(!HeadAnimInstance ) return;
+
 		/* Iris position(in - out, up - down) : Lerp between base position (default iris offset) and max position, set in head data
 		*/
-
 		FVector2D IrisPositionLeft( HumanBodyData.EyeCustomData.GetCustomDataValue( 0, 6 ), HumanBodyData.EyeCustomData.GetCustomDataValue( 0, 7 ) );
 		FVector2D IrisOffsetXLeft = FVector2D::Zero();
 		FVector2D IrisOffsetYLeft = FVector2D::Zero();
-		if( float EyeLookInLeft = HeadComponent->GetMorphTarget( "EyeLookInLeft" ) > 0.f )
+		float EyeLookInLeft = HeadAnimInstance->GetCurveValue( "EyeLookInLeft" );
+		float EyeLookOutLeft = HeadAnimInstance->GetCurveValue( "EyeLookOutLeft" );
+		float EyeLookUpLeft = HeadAnimInstance->GetCurveValue( "EyeLookUpLeft" );
+		float EyeLookDownLeft = HeadAnimInstance->GetCurveValue( "EyeLookDownLeft" );
+		if( EyeLookInLeft > 0.f )
 		{
-			IrisOffsetXLeft = FMath::Lerp( IrisPositionLeft, HeadMeshData->IrisMaxPositionIn, EyeLookInLeft );
+			IrisOffsetXLeft = FMath::Lerp( IrisPositionLeft, HeadMeshData->IrisMaxPositionIn, EyeLookInLeft ) - IrisPositionLeft;
 		}
-		else if( float EyeLookOutLeft = HeadComponent->GetMorphTarget( "EyeLookOutLeft" ) > 0.f )
+		else if( EyeLookOutLeft > 0.f )
 		{
-			IrisOffsetXLeft = FMath::Lerp( IrisPositionLeft, HeadMeshData->IrisMaxPositionOut, EyeLookOutLeft );
+			IrisOffsetXLeft = FMath::Lerp( IrisPositionLeft, HeadMeshData->IrisMaxPositionOut, EyeLookOutLeft ) - IrisPositionLeft;
+		}
+		if( EyeLookUpLeft > 0.f )
+		{
+			IrisOffsetYLeft = FMath::Lerp( IrisPositionLeft, HeadMeshData->IrisMaxPositionUp, EyeLookUpLeft ) - IrisPositionLeft;
+		}
+		else if( EyeLookDownLeft > 0.f )
+		{
+			IrisOffsetYLeft = FMath::Lerp( IrisPositionLeft, HeadMeshData->IrisMaxPositionDown, EyeLookDownLeft ) - IrisPositionLeft;
 		}
 
-		if( float EyeLookUpLeft = HeadComponent->GetMorphTarget( "EyeLookUpLeft" ) > 0.f )
-		{
-			IrisOffsetYLeft = FMath::Lerp( IrisPositionLeft, HeadMeshData->IrisMaxPositionUp, EyeLookUpLeft );
-		}
-		else if( float EyeLookDownLeft = HeadComponent->GetMorphTarget( "EyeLookDownLeft" ) > 0.f )
-		{
-			IrisOffsetYLeft = FMath::Lerp( IrisPositionLeft, HeadMeshData->IrisMaxPositionDown, EyeLookDownLeft );
-		}
-
-		IrisPositionLeft += (IrisOffsetXLeft + IrisOffsetYLeft);
+		IrisPositionLeft += IrisOffsetXLeft + IrisOffsetYLeft;
 
 		FVector2D IrisPositionRight( HumanBodyData.EyeCustomData.GetCustomDataValue( 1, 6 ), HumanBodyData.EyeCustomData.GetCustomDataValue( 1, 7 ) );
 		FVector2D IrisOffsetXRight = FVector2D::Zero();
 		FVector2D IrisOffsetYRight = FVector2D::Zero();
-		if( float EyeLookInRight = HeadComponent->GetMorphTarget( "EyeLookInRight" ) > 0.f )
+		float EyeLookInRight = HeadAnimInstance->GetCurveValue( "EyeLookInRight" );
+		float EyeLookOutRight = HeadAnimInstance->GetCurveValue( "EyeLookOutRight" );
+		float EyeLookUpRight = HeadAnimInstance->GetCurveValue( "EyeLookUpRight" );
+		float EyeLookDownRight = HeadAnimInstance->GetCurveValue( "EyeLookDownRight" );
+		if( EyeLookInRight > 0.f )
 		{
-			IrisOffsetXRight = FMath::Lerp( IrisPositionRight, HeadMeshData->IrisMaxPositionIn, EyeLookInRight );
+			IrisOffsetXRight = FMath::Lerp( IrisPositionRight, HeadMeshData->IrisMaxPositionIn, EyeLookInRight ) - IrisPositionRight;
 		}
-		else if( float EyeLookOutRight = HeadComponent->GetMorphTarget( "EyeLookOutRight" ) > 0.f )
+		else if( EyeLookOutRight > 0.f )
 		{
-			IrisOffsetXRight = FMath::Lerp( IrisPositionRight, HeadMeshData->IrisMaxPositionOut, EyeLookOutRight );
+			IrisOffsetXRight = FMath::Lerp( IrisPositionRight, HeadMeshData->IrisMaxPositionOut, EyeLookOutRight ) - IrisPositionRight;
+		}
+		if( EyeLookUpRight > 0.f )
+		{
+			IrisOffsetYRight = FMath::Lerp( IrisPositionRight, HeadMeshData->IrisMaxPositionUp, EyeLookUpRight ) - IrisPositionRight;
+		}
+		else if( EyeLookDownRight > 0.f )
+		{
+			IrisOffsetYRight = FMath::Lerp( IrisPositionRight, HeadMeshData->IrisMaxPositionDown, EyeLookDownRight ) - IrisPositionRight;
 		}
 
-		if( float EyeLookUpRight = HeadComponent->GetMorphTarget( "EyeLookUpRight" ) > 0.f )
-		{
-			IrisOffsetYRight = FMath::Lerp( IrisPositionRight, HeadMeshData->IrisMaxPositionUp, EyeLookUpRight );
-		}
-		else if( float EyeLookDownRight = HeadComponent->GetMorphTarget( "EyeLookDownRight" ) > 0.f )
-		{
-			IrisOffsetYRight = FMath::Lerp( IrisPositionRight, HeadMeshData->IrisMaxPositionDown, EyeLookDownRight );
-		}
-
-		IrisPositionRight += (IrisOffsetXRight + IrisOffsetYRight);
+		IrisPositionRight += IrisOffsetXRight + IrisOffsetYRight;
 
 		/* Iris scale : if eye is wide, scale down the iris for a scared/suprise effect. Move down the eyelash shadow (Sclera dark corner) when eye is closing
 		*/
-
-		float EyeWideLeft = HeadComponent->GetMorphTarget( "EyeWideLeft" );
+		float EyeWideLeft = HeadAnimInstance->GetCurveValue( "EyeWideLeft" );
 		float ScalingClampedLeft = FMath::Max(( 1 - EyeWideLeft ), HeadMeshData->EyesMinimumScale );
 		FVector2D IrisScaleLeft( HumanBodyData.EyeCustomData.GetCustomDataValue( 0, 4 ) * ScalingClampedLeft, HumanBodyData.EyeCustomData.GetCustomDataValue( 0, 5 ) * ScalingClampedLeft );
 
-		float EyeWideRight = HeadComponent->GetMorphTarget( "EyeWideRight" );
+		float EyeWideRight = HeadAnimInstance->GetCurveValue( "EyeWideRight" );
 		float ScalingClampedRight = FMath::Max( ( 1 - EyeWideRight ), HeadMeshData->EyesMinimumScale );
 		FVector2D IrisScaleRight( HumanBodyData.EyeCustomData.GetCustomDataValue( 1, 4 ) * ScalingClampedRight, HumanBodyData.EyeCustomData.GetCustomDataValue( 1, 5 ) * ScalingClampedRight );
 
-		float EyelashPositionLeft = HumanBodyData.EyeCustomData.GetCustomDataValue( 0, 17 ) + ( -EyeWideLeft )  + HeadComponent->GetMorphTarget("EyeBlinkLeft");
-		float EyelashPositionRight = HumanBodyData.EyeCustomData.GetCustomDataValue( 1, 17 ) + ( -EyeWideRight )  + HeadComponent->GetMorphTarget("EyeBlinkRight");
+		float EyelashPositionLeft = HumanBodyData.EyeCustomData.GetCustomDataValue( 0, 17 ) + EyeWideLeft * HumanBodyData.EyeCustomData.EyelashShadowWeightOpen - HeadAnimInstance->GetCurveValue("EyeBlinkLeft") * HumanBodyData.EyeCustomData.EyelashShadowWeightClose;
+		float EyelashPositionRight = HumanBodyData.EyeCustomData.GetCustomDataValue( 1, 17 ) + EyeWideRight * HumanBodyData.EyeCustomData.EyelashShadowWeightOpen - HeadAnimInstance->GetCurveValue("EyeBlinkRight") * HumanBodyData.EyeCustomData.EyelashShadowWeightClose;
 		
 		uint8 NumberOfEyes = Eyes->GetInstanceCount();
 
@@ -452,12 +501,10 @@ void AHuman::SetupOneSkeletalMeshComponent( FModularSkeletalMeshData& SkeletalMe
 {
 	if( SkeletalMeshData.MeshData )
 	{
-		USkeletalMesh* SkeletalMesh = SkeletalMeshData.MeshData->Mesh.LoadSynchronous();
-		if( SkeletalMesh )
+		if( USkeletalMesh* SkeletalMesh = SkeletalMeshData.MeshData->Mesh.LoadSynchronous() )
 		{
 			UE_LOG( LogCharacter, Log, TEXT( "- Skeletal mesh %s found and loaded" ), *UEnum::GetValueAsString( SkeletalMeshData.MeshData->MeshType ) );
-			USkeletalMeshComponent* BodyComponent = CreateSkeletalMeshComponent( UEnum::GetValueAsName( SkeletalMeshData.MeshData->MeshType ) );
-			if( BodyComponent )
+			if( USkeletalMeshComponent* BodyComponent = CreateSkeletalMeshComponent( UEnum::GetValueAsName( SkeletalMeshData.MeshData->MeshType ) ) )
 			{
 				UE_LOG( LogCharacter, Log, TEXT( "  * Component created succesfully" ) );
 				BodyComponent->SetSkeletalMesh( SkeletalMesh );
@@ -480,12 +527,11 @@ void AHuman::SetupOneSkeletalMeshComponent( FModularSkeletalMeshData& SkeletalMe
 					UE_LOG( LogCharacter, Log, TEXT( "  * Body part is head" ) );
 
 					TArray<float> CustomFaceDatas = HumanBodyData.SkinAndFaceCustomData.CombineFaceData();
-					UpdateSkeletalMeshCustomData( BodyComponent, CustomFaceDatas );
+					UpdateSkeletalMeshCustomData( BodyComponent, CustomFaceDatas, SkeletalMeshData.MeshData->MeshType );
 
 					// TODO: Temporary set body mask to default
-					BodyComponent->SetCustomPrimitiveDataFloat(35, 1.01f);
+					BodyComponent->SetCustomPrimitiveDataFloat( 35, 1.01f);
 
-					// Only set default CustomPrimitiveData in editor because for runtime it's useless
 					#if WITH_EDITOR
 					BodyComponent->SetDefaultCustomPrimitiveDataFloat( 35, 1.01f );
 					#endif
@@ -496,7 +542,29 @@ void AHuman::SetupOneSkeletalMeshComponent( FModularSkeletalMeshData& SkeletalMe
 				else
 				{
 					UE_LOG( LogCharacter, Log, TEXT( "  * Body part is cloth" ) );
-					// Combine cloth data
+					TArray<float> SkinData = HumanBodyData.SkinAndFaceCustomData.CombineSkinData();
+					// combine cloth data and send merge both array
+					UpdateSkeletalMeshCustomData( BodyComponent, SkinData, SkeletalMeshData.MeshData->MeshType);
+
+					// TODO: Temporary set all body mask to default, later make function updateMainBodyMask
+					BodyComponent->SetCustomPrimitiveDataFloat( 22, 0.f );
+					BodyComponent->SetCustomPrimitiveDataFloat( 23, 1.01f );
+					BodyComponent->SetCustomPrimitiveDataFloat( 24, 0.f );
+					BodyComponent->SetCustomPrimitiveDataFloat( 25, 1.01f );
+					BodyComponent->SetCustomPrimitiveDataFloat( 26, 1.01f );
+					BodyComponent->SetCustomPrimitiveDataFloat( 27, 1.01f );
+					BodyComponent->SetCustomPrimitiveDataFloat( 28, 1.01f );
+
+					// Only set default CustomPrimitiveData in editor because for runtime it's useless
+					#if WITH_EDITOR
+					BodyComponent->SetDefaultCustomPrimitiveDataFloat( 22, 0.f );
+					BodyComponent->SetDefaultCustomPrimitiveDataFloat( 23, 1.01f );
+					BodyComponent->SetDefaultCustomPrimitiveDataFloat( 24, 0.f );
+					BodyComponent->SetDefaultCustomPrimitiveDataFloat( 25, 1.01f );
+					BodyComponent->SetDefaultCustomPrimitiveDataFloat( 26, 1.01f );
+					BodyComponent->SetDefaultCustomPrimitiveDataFloat( 27, 1.01f );
+					BodyComponent->SetDefaultCustomPrimitiveDataFloat( 28, 1.01f );
+					#endif
 				}
 
 				RefreshLeaderComponent( BodyComponent );
@@ -532,11 +600,10 @@ USkeletalMeshComponent* AHuman::CreateSkeletalMeshComponent( FName BodyPartName 
 void AHuman::InitializeSkeletalMeshComponent( USkeletalMeshComponent* SkeletalMeshComponent )
 {
 	SkeletalMeshComponent->bUseAttachParentBound = true;
-	SkeletalMeshComponent->bUseBoundsFromLeaderPoseComponent = true;
 
-	this->RemoveOwnedComponent( SkeletalMeshComponent );
+	RemoveOwnedComponent( SkeletalMeshComponent );
 	SkeletalMeshComponent->CreationMethod = EComponentCreationMethod::Instance;
-	this->AddOwnedComponent( SkeletalMeshComponent );
+	AddOwnedComponent( SkeletalMeshComponent );
 
 	SkeletalMeshComponent->AttachToComponent( MainBody, FAttachmentTransformRules::SnapToTargetIncludingScale );
 
@@ -572,20 +639,74 @@ void AHuman::UpdateSkeletalMeshMaterials( USkeletalMeshComponent* SkeletalMeshCo
 	}
 }
 
-void AHuman::UpdateSkeletalMeshCustomData( USkeletalMeshComponent* SkeletalMeshComponent, TArray<float>& CustomDatas )
+void AHuman::UpdateSkeletalMeshCustomData( USkeletalMeshComponent* SkeletalMeshComponent, TArray<float>& CustomDatas, EBodyPartType BodyPart )
 {
 	for( int32 DataIndex = 0; DataIndex < CustomDatas.Num(); DataIndex++ )
 	{
-		SkeletalMeshComponent->SetCustomPrimitiveDataFloat(DataIndex + FSkinFaceCustomData::StartingIndexSkin, CustomDatas[DataIndex]);
+		SkeletalMeshComponent->SetCustomPrimitiveDataFloat( DataIndex + FSkinFaceCustomData::StartingIndexSkin, CustomDatas[DataIndex] );
 	}
 
-	// Only set default CustomPrimitiveData in editor because for runtime it's useless
 	#if WITH_EDITOR
 	for( int32 DataIndex = 0; DataIndex < CustomDatas.Num(); DataIndex++ )
 	{
 		SkeletalMeshComponent->SetDefaultCustomPrimitiveDataFloat( DataIndex + FSkinFaceCustomData::StartingIndexSkin, CustomDatas[DataIndex] );
 	}
 	#endif
+
+	UpdateSkeletalMeshBodyMorphology( SkeletalMeshComponent, EBodyMorphCustomData::BodyMuscle, BodyPart );
+	UpdateSkeletalMeshBodyMorphology( SkeletalMeshComponent, EBodyMorphCustomData::LegsMuscle, BodyPart );
+	UpdateSkeletalMeshBodyMorphology( SkeletalMeshComponent, EBodyMorphCustomData::Boobs, BodyPart );
+}
+
+void AHuman::UpdateSkeletalMeshBodyMorphology( USkeletalMeshComponent* SkeletalMeshComponent, EBodyMorphCustomData CustomDataType, EBodyPartType BodyPart )
+{
+	switch( CustomDataType )
+	{
+		case EBodyMorphCustomData::BodyMuscle:
+		if( BodyPart == EBodyPartType::Head ) return;
+
+		SkeletalMeshComponent->SetCustomPrimitiveDataFloat( (BodyPart == EBodyPartType::MainBody ) ? 30 : 34, HumanBodyData.BodyMorphology.BodyMuscle );
+
+		#if WITH_EDITOR
+		SkeletalMeshComponent->SetDefaultCustomPrimitiveDataFloat( ( BodyPart == EBodyPartType::MainBody ) ? 30 : 34, HumanBodyData.BodyMorphology.BodyMuscle );
+		#endif
+		break;
+		case EBodyMorphCustomData::LegsMuscle:
+		if( BodyPart == EBodyPartType::Head ) return;
+
+		SkeletalMeshComponent->SetCustomPrimitiveDataFloat( ( BodyPart == EBodyPartType::MainBody ) ? 31 : 35, HumanBodyData.BodyMorphology.LegsMuscle );
+
+		#if WITH_EDITOR
+		SkeletalMeshComponent->SetDefaultCustomPrimitiveDataFloat( ( BodyPart == EBodyPartType::MainBody ) ? 31 : 35, HumanBodyData.BodyMorphology.LegsMuscle );
+		#endif
+		break;
+		case EBodyMorphCustomData::Boobs:
+		if( BodyPart == EBodyPartType::MainBody )
+		{
+			SkeletalMeshComponent->SetCustomPrimitiveDataFloat( 29, HumanBodyData.BodyMorphology.Boobs );
+			#if WITH_EDITOR
+			SkeletalMeshComponent->SetDefaultCustomPrimitiveDataFloat( 29, HumanBodyData.BodyMorphology.Boobs );
+			#endif
+		}
+		else if ( BodyPart == EBodyPartType::Head )
+		{
+			SkeletalMeshComponent->SetCustomPrimitiveDataFloat( 34, HumanBodyData.BodyMorphology.Boobs );
+			#if WITH_EDITOR
+			SkeletalMeshComponent->SetDefaultCustomPrimitiveDataFloat( 34, HumanBodyData.BodyMorphology.Boobs );
+			#endif
+		}
+		else
+		{
+			SkeletalMeshComponent->SetCustomPrimitiveDataFloat( 33, HumanBodyData.BodyMorphology.Boobs );
+			#if WITH_EDITOR
+			SkeletalMeshComponent->SetDefaultCustomPrimitiveDataFloat( 33, HumanBodyData.BodyMorphology.Boobs );
+			#endif
+		}
+		break;
+		default:
+		return;
+		break;
+	}
 }
 
 void AHuman::UpdateHeadAnimInstance()
@@ -689,41 +810,6 @@ void AHuman::SetHeightWetness( float HeightWetness, float HeightWetnessOpacity )
 	}
 }
 
-void AHuman::SetCryingEffect( float CryingEffectCoef )
-{
-	USkeletalMeshComponent* HeadComponent = GetHeadComponent();
-	if( HeadComponent && HeadMeshData && HumanStateData.CryingEffect != CryingEffectCoef )
-	{
-		HumanStateData.CryingEffect = CryingEffectCoef;
-
-		/* Crying effect for eyes : remap 0-1 range to 0 - MaxCryingEffect (most likely 0 - 0.15)
-		*/
-		float EyeCryingEffect = FMath::GetMappedRangeValueClamped( TRange<float>( 0.f, 1.f ), TRange<float>( 0.f, HumanBodyData.EyeCustomData.MaxCryingEffect ), CryingEffectCoef );
-
-		uint8 NumberOfEyes = Eyes->GetInstanceCount();
-
-		for( uint8 EyeIndex = 0; EyeIndex < NumberOfEyes; EyeIndex++ )
-		{
-			#if WITH_EDITOR
-				/* In editor, we set the render state dirty on the last instance. Actor's ticks doesn't run in editor.
-					UpdateEyes() set the render dirty and is executed on actor tick, so at runtime we don't need this condition. */
-				if( EyeIndex == NumberOfEyes - 1 )
-				{
-					Eyes->SetCustomDataValue( EyeIndex, 19, EyeCryingEffect, true );
-				}
-				else
-				{
-					Eyes->SetCustomDataValue( EyeIndex, 19, EyeCryingEffect );
-				}
-			#else
-				Eyes->SetCustomDataValue( EyeIndex, 19, EyeCryingEffect );
-			#endif
-		}
-
-		HeadComponent->SetCustomPrimitiveDataFloat( 33, CryingEffectCoef );
-	}
-}
-
 void AHuman::SetHeightMask( float HeightMask )
 {
 	if( HumanStateData.MaskHeight == HeightMask ) return;
@@ -781,32 +867,35 @@ void AHuman::SetReverseMask( bool IsMaskReverse )
 	}
 }
 
-void AHuman::SetYanMadEffect( float YanMadEffect )
+void AHuman::SetEffect( float EffectNumber )
 {
 	USkeletalMeshComponent* HeadComponent = GetHeadComponent();
-	if( HeadComponent && HeadMeshData && HumanStateData.YandereMadEffect != YanMadEffect )
+	if( HeadComponent && HeadMeshData && HumanStateData.Effect != EffectNumber )
 	{
-		HumanStateData.YandereMadEffect = YanMadEffect;
-		UE_LOG( LogCharacter, Warning, TEXT( "YandereEffect %f" ), YanMadEffect );
-		HeadComponent->SetCustomPrimitiveDataFloat( 34, YanMadEffect );
+		HumanStateData.Effect = EffectNumber;
+
+		HeadComponent->SetCustomPrimitiveDataFloat( 33, EffectNumber );
 	}
 }
 
 void AHuman::UpdateHeadAnimation()
 {
-	USkeletalMeshComponent* HeadComponent = GetHeadComponent();
-	if( HeadComponent )
+	if( USkeletalMeshComponent* HeadComponent = GetHeadComponent() )
 	{
+		UAnimInstance* HeadAnimInstance = HeadComponent->GetAnimInstance();
+		if(!HeadAnimInstance ) return;
+
 		// Average of top lip going up and bottom lip going down
-		float TeethAnimation = ( HeadComponent->GetMorphTarget( TEXT("MouthUpperUpLeft") ) + HeadComponent->GetMorphTarget( TEXT( "MouthLowerDownLeft" ) ) 
-		+ HeadComponent->GetMorphTarget( TEXT( "MouthUpperUpRight" ) ) + HeadComponent->GetMorphTarget( TEXT( "MouthLowerDownRight" ) ) ) / 4;
-		HeadComponent->SetCustomPrimitiveDataFloat(30, TeethAnimation);
+		float TeethAnimation = ( HeadAnimInstance->GetCurveValue( TEXT( "MouthUpperUpLeft" ) ) + HeadAnimInstance->GetCurveValue( TEXT( "MouthLowerDownLeft" ) )
+		+ HeadAnimInstance->GetCurveValue( TEXT( "MouthUpperUpRight" ) ) + HeadAnimInstance->GetCurveValue( TEXT( "MouthLowerDownRight" ) ) ) / 4;
+		HeadComponent->SetCustomPrimitiveDataFloat( 30, TeethAnimation);
 
 		// Jaw open minus mouth closed
-		float JawAnimation = HeadComponent->GetMorphTarget( TEXT( "JawOpen" ) ) - HeadComponent->GetMorphTarget( TEXT( "MouthClose" ) );
+		float JawAnimation = HeadAnimInstance->GetCurveValue( TEXT( "JawOpen" ) ) - HeadAnimInstance->GetCurveValue( TEXT( "MouthClose" ) );
 		HeadComponent->SetCustomPrimitiveDataFloat( 31, JawAnimation );
 
-		HeadComponent->SetCustomPrimitiveDataFloat( 32, HeadComponent->GetMorphTarget( TEXT( "TongueOut" ) ) );
+		// Tongue
+		HeadComponent->SetCustomPrimitiveDataFloat( 32, HeadAnimInstance->GetCurveValue( TEXT( "TongueOut" ) ) );
 	}
 }
 
@@ -916,30 +1005,131 @@ void AHuman::UpdateMainBodyAnimation( UAnimSequence* AnimationToPlay, float InAn
 	SetArkitName_Editor( InIphoneName );
 }
 
-void AHuman::DebugDatasRuntime()
+void AHuman::DebugAnimationDatasRuntime()
 {
-	FString EyesCompString = "(";
-	for( int32 I = 0; I < Eyes->GetInstanceCount(); I++ )
-	{
-		if( Eyes->PerInstanceSMCustomData.IsValidIndex( (I+1)*19 ) )
-		{
-			EyesCompString.Append( FString::Printf( TEXT( "%f" ), Eyes->PerInstanceSMCustomData[( I + 1 ) * 19]));
-		}
+	GEngine->AddOnScreenDebugMessage(0, 5, FColor::Cyan, TEXT("--- Starting animation debug ---"));
 
-		if( I == Eyes->GetInstanceCount() - 1 )
-		{
-			EyesCompString.Append(")");
-		}
-		else
-		{
-			EyesCompString.Append( ", " );
-		}
-	}
+	TArray<FName> BoneNames;
+	FName ArrBone[] = { //TEXT( "clavicle_l" ),
+		//TEXT( "upperarm_l" ),
+		TEXT( "lowerarm_l" ),
+		TEXT( "lowerarm_r" )
+		/*TEXT( "hand_l" ),
+		TEXT( "thigh_l" ),
+		TEXT( "calf_l" ),
+		TEXT( "foot_l" ),
+		TEXT("ball_l")*/};
 
-	GEngine->AddOnScreenDebugMessage(1, 3, FColor::Red, FString::Printf( TEXT( "Eye crying - components : %s, Eye crying - datas : %f" ), *EyesCompString, HumanStateData.CryingEffect ));
-	if( USkeletalMeshComponent* HeadComp = GetHeadComponent() )
+	BoneNames.Append( ArrBone, 2 );
+
+	UAnimInstance* AnimInstance = MainBody->GetAnimInstance();
+	
+	if(!AnimInstance) return GEngine->AddOnScreenDebugMessage( 0, 5, FColor::Red, TEXT( "Error: no animation instance..." ) );
+
+	TArray<FName> ActiveCurveNames;
+	AnimInstance->GetActiveCurveNames(EAnimCurveType::AttributeCurve, ActiveCurveNames );
+
+	for( uint8 Index = 0; Index < BoneNames.Num(); Index++ )
 	{
-		GEngine->AddOnScreenDebugMessage( 2, 3, FColor::Red, FString::Printf( TEXT( "Face crying - components : %f, Face crying - datas : %f" ), HeadComp->GetCustomPrimitiveData().Data[33], HumanStateData.CryingEffect));
+		FName BoneName = BoneNames[Index];
+		int32 NameLength = BoneNames[Index].GetStringLength();
+
+		GEngine->AddOnScreenDebugMessage( Index+1, 5, FColor::Cyan, FString::Printf( TEXT( "#### Bone %s ####" ), *BoneName.ToString() ) );
+		FString DebugMessageMorph = TEXT( "- " );
+		FString DebugMessageCurve = TEXT( "- " );
+
+		for( uint8 IndexCurve = 0; IndexCurve < ActiveCurveNames.Num(); IndexCurve++ )
+		{
+			FName CurveName = ActiveCurveNames[IndexCurve];
+
+			if( CurveName.ToString().StartsWith( BoneName.ToString() ) )
+			{
+				if( CurveName.ToString().EndsWith( TEXT( "_morph" ) ) )
+				{
+					if( AnimInstance->GetCurveValue( CurveName ) != 0.f )
+					{
+						DebugMessageMorph.Append( FString::Printf( TEXT( "%s : %f  ||  " ), *CurveName.ToString(), AnimInstance->GetCurveValue( CurveName ) ) );
+					}
+				}
+				else
+				{
+					DebugMessageCurve.Append( FString::Printf( TEXT( "%s : %f  ||  " ), *CurveName.ToString(), AnimInstance->GetCurveValue( CurveName ) ) );
+				}
+			}
+		}
+		GEngine->AddOnScreenDebugMessage( ( Index + 1 ) * 100, 5, FColor::Cyan, DebugMessageCurve );
+		GEngine->AddOnScreenDebugMessage( ( Index + 1 ) * 100 + 1, 5, FColor::Cyan, DebugMessageMorph );
 	}
 }
+
+void AHuman::DebugMorphTargetDatasRuntime()
+{
+	USkeletalMeshComponent* HeadComponent = GetHeadComponent();
+	if( HeadComponent )
+	{
+		GEngine->AddOnScreenDebugMessage( 0, 5, FColor::Cyan, TEXT( "--- Starting morphtarget debug ---" ) );
+
+		UAnimInstance* AnimationInstance = HeadComponent->GetAnimInstance();
+		if( !AnimationInstance ) return GEngine->AddOnScreenDebugMessage( 0, 5, FColor::Red, TEXT( "ANIMATION INSTANCE DOESN'T EXIST" ) );
+
+		TArray<FName> CurvesName;
+		AnimationInstance->GetActiveCurveNames( EAnimCurveType::MorphTargetCurve, CurvesName );
+
+		TArray<FString> BoneNames;
+		FString ArrBone[] = { TEXT( "clavicle" ),
+			TEXT( "upperarm" ),
+			TEXT( "lowerarm" ),
+			TEXT( "hand" ),
+			TEXT( "thigh" ),
+			TEXT( "calf" ),
+			TEXT( "foot" ),
+			TEXT( "ball" ),
+			TEXT( "Legs" ),
+			TEXT( "Body" ),
+			TEXT( "Arm" ),
+			TEXT( "Boobs" )};
+
+		BoneNames.Append( ArrBone, 12 );
+
+		uint8 Index = 1;
+		for( FName CurveName : CurvesName )
+		{
+			bool IsFaceCurve = true;
+
+			for( FString BoneName : BoneNames )
+			{
+				if( CurveName.ToString().StartsWith( BoneName ) ) IsFaceCurve = false;
+			}
+
+			if( IsFaceCurve && CurveName == TEXT("CatMouth") )
+			{
+				FString DebugMessageMorph = TEXT( "- " );
+				DebugMessageMorph.Append( FString::Printf( TEXT( "%s : %f" ), *CurveName.ToString(), AnimationInstance->GetCurveValue( CurveName ) ) );
+				GEngine->AddOnScreenDebugMessage( Index, 5, FColor::Cyan, DebugMessageMorph );
+				Index++;
+			}
+		}
+	}
+}
+
+void AHuman::SetEditorAnimationBP( TSubclassOf<UAnimInstance> InAnimationBP )
+{
+	EditorAnimationBP = InAnimationBP;
+}
+
+UAnimSequence* AHuman::GetAnimationPreview() const
+{
+	return MainBodyAnimationToPlay;
+}
+
+float AHuman::GetAnimationPlayRate() const
+{
+	return AnimPlayRate;
+}
 #endif // WITH_EDITORONLY_DATA
+
+/*
+TODO:
+Fix head shadow (agane)
+Fix mouth shape for MouthPucker (probably), blend badly with jaw opening
+*/

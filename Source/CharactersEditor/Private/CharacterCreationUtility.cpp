@@ -53,6 +53,8 @@ void UCharacterCreationUtility::NativeConstruct()
 			CharacterSpawned = Cast<AHuman>(FoundActors[0]);
 			CharacterProperties = CharacterSpawned->GetHumanBodyData();
 			CharacterClass = FoundActors[0]->GetClass();
+			AnimationPreview = CharacterSpawned->GetAnimationPreview();
+			AnimPlayRate = CharacterSpawned->GetAnimationPlayRate();
 			UpdateEyesArray();
 		}
 	}
@@ -64,7 +66,7 @@ void UCharacterCreationUtility::UpdateCharacter()
 	{
 		if( !CharacterClass ) CharacterClass = AHuman::StaticClass();
 
-		if( CharacterSpawned && CharacterSpawned->StaticClass() != CharacterClass )
+		if( CharacterSpawned && CharacterSpawned->GetClass() != CharacterClass )
 		{
 			DestroyCharacter();
 		}
@@ -74,17 +76,15 @@ void UCharacterCreationUtility::UpdateCharacter()
 			FActorSpawnParameters Parameters;
 			Parameters.bDeferConstruction = 1;
 			CharacterSpawned = TheWorld->SpawnActor<AHuman>( CharacterClass, Parameters );
-
 		}
 
+		CharacterSpawned->SetEditorAnimationBP( AnimationBP );
 		CharacterSpawned->SetHumanBodyData( CharacterProperties );
 		CharacterSpawned->ResetFirstInit();
 		CharacterSpawned->OnConstruction( FTransform() );
-		
-		if( USkeletalMeshComponent* MainBodyComponent = CharacterSpawned->GetMainBodyComponent() )
-		{
-			MainBodyComponent->SetAnimInstanceClass( AnimationBP );
-		}
+
+		UpdateEyesArray();
+		UpdatePreviewData();
 
 		if( AnimationPreview && IsAnimSequenceCompatible() )
 		{
@@ -104,13 +104,9 @@ void UCharacterCreationUtility::OnPropertyChangedMainPanel(FName PropertyName)
 
 void UCharacterCreationUtility::OnPropertyChangedEditorPreview( FName PropertyName )
 {
-	if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, CryingEffect ) )
+	if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, Effect ) )
 	{
-		CharacterSpawned->SetCryingEffect( CryingEffect );
-	}
-	else if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, YanMadEffect ) )
-	{
-		CharacterSpawned->SetYanMadEffect(YanMadEffect);
+		CharacterSpawned->SetEffect( Effect );
 	}
 	else if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, MainWetness ) )
 	{
@@ -163,7 +159,39 @@ void UCharacterCreationUtility::OnPropertyChangedEditorPreview( FName PropertyNa
 
 void UCharacterCreationUtility::OnPropertyChangedAnimation( FName PropertyName )
 {
-	UE_LOG( LogCharacter, Log, TEXT( "%s" ), *PropertyName.ToString() );
+	if(!CharacterSpawned ) return;
+
+	CharacterSpawned->SetEditorAnimationBP( AnimationBP );
+
+	if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, AnimPlayRate ) || PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, AnimationPreview ) )
+	{
+		if( AnimationPreview )
+		{
+			if( IsAnimSequenceCompatible() )
+			{	
+				CharacterSpawned->UpdateMainBodyAnimation( AnimationPreview, AnimPlayRate, ARKitName );
+			}
+			else
+			{
+				UE_LOG( LogCharacter, Error, TEXT( "ERROR : Preview animation not compatible with this skeleton !" ) );
+			}
+		}
+		else
+		{
+			CharacterSpawned->UpdateMainBodyAnimation( nullptr, AnimPlayRate, ARKitName );
+		}
+	}
+	else if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, AnimationBP ) )
+	{
+		if( USkeletalMeshComponent* MainBodyComponent = CharacterSpawned->GetMainBodyComponent() )
+		{
+			MainBodyComponent->SetAnimInstanceClass( AnimationBP );
+		}
+	}
+	else if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, ARKitName ) )
+	{
+		CharacterSpawned->UpdateMainBodyAnimation( AnimationPreview, AnimPlayRate, ARKitName );
+	}
 }
 
 void UCharacterCreationUtility::SaveButtonClicked()
@@ -239,5 +267,35 @@ void UCharacterCreationUtility::UpdateEyesArray()
 			EyesEmissive.Add( EyesEmissiveTemp.IsValidIndex( I )  ? EyesEmissiveTemp[I] : 0 );
 			PupilScale.Add( PupilScaleTemp.IsValidIndex( I )  ? PupilScaleTemp[I] : 1 );
 		}
+	}
+}
+
+void UCharacterCreationUtility::UpdatePreviewData()
+{
+	CharacterSpawned->SetEffect( Effect );
+	CharacterSpawned->SetGlobalWetness( MainWetness );
+	CharacterSpawned->SetHeightWetness( HeightWetness, HeightWetnessOpacity );
+	CharacterSpawned->SetIsUnderRoof( UnderRoof );
+	CharacterSpawned->SetHeightMask( HeightMask );
+	CharacterSpawned->SetSphereMask( SphereMaskPosition, SphereMaskRadius );
+	for( uint8 I = 0; I < EyesBleeding.Num(); I++ )
+	{
+		TArray<int32> IndexArray;
+		IndexArray.Add( I );
+		CharacterSpawned->SetEyesBleeding( EyesBleeding[I], IndexArray );
+	}
+
+	for( uint8 I = 0; I < EyesEmissive.Num(); I++ )
+	{
+		TArray<int32> IndexArray;
+		IndexArray.Add( I );
+		CharacterSpawned->SetEyesEmissive( EyesEmissive[I], IndexArray );
+	}
+
+	for( uint8 I = 0; I < PupilScale.Num(); I++ )
+	{
+		TArray<int32> IndexArray;
+		IndexArray.Add( I );
+		CharacterSpawned->SetPupilScale( PupilScale[I], IndexArray );
 	}
 }

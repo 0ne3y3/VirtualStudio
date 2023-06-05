@@ -36,6 +36,20 @@ enum class EBodyPartType : uint8
 };
 
 /**
+* Enum for custom data for body morph
+*/
+UENUM( BlueprintType )
+enum class EBodyMorphCustomData : uint8
+{
+	BodyMuscle,
+	BodyFat,
+	ArmsMuscle,
+	LegsFat,
+	LegsMuscle,
+	Boobs
+};
+
+/**
 * FHairCustomData
 *
 * Structure containing hair custom data.
@@ -124,6 +138,12 @@ struct CHARACTERS_API FEyeCustomData
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|Material", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
 	float MaxCryingEffect = 0.15f;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face|Material", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
+	float EyelashShadowWeightClose = 0.35f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face|Material", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
+	float EyelashShadowWeightOpen = 0.1f;
+
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|Material" )
 	TArray<FLinearColor> ScleraColorBleeding;
 
@@ -164,9 +184,10 @@ struct CHARACTERS_API FSkinFaceCustomData
 	GENERATED_USTRUCT_BODY()
 
 	static const int32 StartingIndexSkin = 10;
+	static const int32 EndIndexSkin = StartingIndexSkin + 7;
 	static const int32 EndingIndexBody = 21;
 	static const int32 EndingIndexFace = 29;
-	static const int32 MaxCustomDataBody = 28;
+	static const int32 MaxCustomDataBody = 33;
 	static const int32 MaxCustomDataFace = 35;
 
 	public:
@@ -207,7 +228,13 @@ struct CHARACTERS_API FSkinFaceCustomData
 	int32 EyebrowColorCurve;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face|CustomData|Color" )
-	FLinearColor InsideMouthColor;
+	int32 InsideMouthCurve;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face|CustomData|Color" )
+	int32 TongueCurve;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face|CustomData|Properties" )
+	int32 Moles;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face|CustomData|Color" )
 	FLinearColor CheekColor;
@@ -223,6 +250,7 @@ struct CHARACTERS_API FSkinFaceCustomData
 	float GetBodyCustomDataValue( int32 CustomDataIndex );
 	float GetFaceCustomDataValue( int32 CustomDataIndex );
 
+	TArray<float> CombineSkinData();
 	TArray<float> CombineBodyData();
 	TArray<float> CombineFaceData();
 };
@@ -435,6 +463,9 @@ class CHARACTERS_API UHeadMeshData : public USkeletalMeshData
 	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Eye", meta = ( ClampMin = 0, UIMin = 0 ) )
 	int32 NumberOfEyes = 2;
 
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Eye" )
+	TArray<FTransform> EyesTransform;
+
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eye|Animation", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
 	float EyesMinimumScale = 0.1f;
 
@@ -489,9 +520,6 @@ struct CHARACTERS_API FHumanBodyMorphology
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body|Morph", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1, ToolTip = "Increase stomach muscles" ) )
 	float BodyMuscle = 0.f;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body|Morph", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1, ToolTip = "Increase stomach and hips size" ) )
-	float BodyPregnant = 0.f;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body|Morph", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1, ToolTip = "Increase boob size and their physics" ) )
 	float Boobs = 0.f;

@@ -101,34 +101,45 @@ float FSkinFaceCustomData::GetFaceCustomDataValue( int32 CustomDataIndex )
 		case 19:
 		return EyebrowColorCurve;
 		case 20:
-		return InsideMouthColor.R;
+		return InsideMouthCurve;
 		case 21:
-		return InsideMouthColor.G;
+		return TongueCurve;
 		case 22:
-		return InsideMouthColor.B;
-		case 23:
 		return CheekColor.R;
-		case 24:
+		case 23:
 		return CheekColor.G;
-		case 25:
+		case 24:
 		return CheekColor.B;
-		case 26:
+		case 25:
 		return LipsColor.R;
-		case 27:
+		case 26:
 		return LipsColor.G;
-		case 28:
+		case 27:
 		return LipsColor.B;
-		case 29:
+		case 28:
 		return MascaraColorCurve;
+		case 29:
+		return Moles;
 		default:
 		return 0;
 	}
 }
 
+TArray<float> FSkinFaceCustomData::CombineSkinData()
+{
+	TArray<float> ValueArray;
+
+	for( uint32 DataIndex = StartingIndexSkin; DataIndex <= EndIndexSkin; DataIndex++ )
+	{
+		ValueArray.Add( GetSkinCustomDataValue( DataIndex ) );
+	}
+
+	return ValueArray;
+}
+
 TArray<float> FSkinFaceCustomData::CombineBodyData()
 {
 	TArray<float> ValueArray;
-	uint32 EndIndexSkin = StartingIndexSkin + 7;
 
 	for( uint32 DataIndex = StartingIndexSkin; DataIndex <= EndingIndexBody; DataIndex++ )
 	{
@@ -148,7 +159,6 @@ TArray<float> FSkinFaceCustomData::CombineBodyData()
 TArray<float> FSkinFaceCustomData::CombineFaceData()
 {
 	TArray<float> ValueArray;
-	uint32 EndIndexSkin = StartingIndexSkin + 7;
 
 	for( uint32 DataIndex = StartingIndexSkin; DataIndex <= EndingIndexFace; DataIndex++ )
 	{

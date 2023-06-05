@@ -53,7 +53,7 @@ class CHARACTERSEDITOR_API UCharacterCreationUtility : public UEditorUtilityWidg
 	UFUNCTION( BlueprintCallable )
 	void OnPropertyChangedEditorPreview( FName PropertyName );
 
-
+	void UpdatePreviewData();
 
 	protected :
 	
@@ -90,11 +90,8 @@ class CHARACTERSEDITOR_API UCharacterCreationUtility : public UEditorUtilityWidg
 	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Animation", meta = ( DisplayName = "ARKit device name" ) )
 	FName ARKitName;
 
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Effect", meta = ( DisplayName = "Crying effect", ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float CryingEffect = 0.f;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Effect", meta = ( DisplayName = "Yandere / Mad effect", ClampMin = 0, ClampMax = 2, UIMin = 0, UIMax = 2 ) )
-	float YanMadEffect = 0.f;
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Effect", meta = ( DisplayName = "Face effect", ClampMin = 0, UIMin = 0 ) )
+	float Effect = 0.f;
 
 	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Effect", meta = ( DisplayName = "Eyes bleeding", ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
 	TArray<float> EyesBleeding;

@@ -67,7 +67,7 @@ class CHARACTERS_API UCRFacePresetData : public UPrimaryDataAsset
 	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "General" )
 	FName PresetName;
 
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Data" )
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Data", meta = ( TitleProperty = "ControlName" ) )
 	TArray<FCRFaceData> CurvesData;
 };
 
@@ -114,54 +114,6 @@ struct CHARACTERS_API FARKitCurveData
 };
 
 /**
-* Enum for part of the body
-
-UENUM( BlueprintType )
-enum class EEffectType : uint8
-{
-	CryingEffect,
-	YandereMadEffect,
-	EyesEmissive,
-	EyesBleeding,
-	PupilScale,
-	GlobalWetness,
-	WetnessZHeight,
-	WetnessZOpacity,
-	MaskHeight,
-	SphereMaskRadius
-};
-*/
-
-/**
-* FHumanEffectState
-*
-* Class containing one effect state.
-
-USTRUCT( BlueprintType )
-struct CHARACTERS_API FHumanEffectState
-{
-	GENERATED_USTRUCT_BODY()
-
-	public:
-
-	UPROPERTY( BlueprintReadWrite )
-	float Goal = 0;
-
-	UPROPERTY( BlueprintReadOnly )
-	float CurrentValue = 0;
-
-	UPROPERTY( BlueprintReadOnly )
-	float CurrentTime = 0;
-
-	UPROPERTY( BlueprintReadWrite )
-	float Duration = 0;
-
-	UPROPERTY( BlueprintReadOnly )
-	bool bIsActive = false;
-};
-*/
-
-/**
 * FHumanStateData
 *
 * Structure containing common dynamic data for a human state, like is crying \ eyes bleeding \ is wet \ is under a roof for rain and such.
@@ -172,11 +124,9 @@ struct CHARACTERS_API FHumanStateData
 	GENERATED_USTRUCT_BODY()
 
 	public:
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float CryingEffect;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face", meta = ( ClampMin = 0, ClampMax = 2, UIMin = 0, UIMax = 2 ) )
-	float YandereMadEffect;
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face", meta = ( ClampMin = 0, UIMin = 0 ) )
+	float Effect;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes", meta = ( ClampMin = 0, ClampMax = 2, UIMin = 0, UIMax = 2 ) )
 	TArray<float> EyesEmissive;
@@ -227,5 +177,11 @@ class CHARACTERS_API UARKitPresetData : public UPrimaryDataAsset
 	FName PresetName;
 
 	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Data" )
+	UCurveFloat* HeadRotationWeight;
+
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Data" )
+	float TongueGoesUpWeight = 0.5f;
+
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Data", meta = ( TitleProperty = "CurveName" ) )
 	TArray<FARKitCurveData> CurvesData;
 };
