@@ -51,7 +51,10 @@ void AHuman::Tick( float DeltaTime )
 
 	UpdateEyesAnimation();
 
-	//DebugMorphTargetDatasRuntime();
+	#if WITH_EDITOR
+	DebugAnimationDatasRuntime();
+	DebugMorphTargetDatasRuntime();
+	#endif
 }
 
 void AHuman::OnConstruction( const FTransform& Transform )
@@ -539,6 +542,10 @@ void AHuman::SetupOneSkeletalMeshComponent( FModularSkeletalMeshData& SkeletalMe
 
 					UpdateHeadAnimInstance();
 				}
+				else if( SkeletalMeshData.MeshData->MeshType == EBodyPartType::Hair )
+				{
+					UE_LOG( LogCharacter, Log, TEXT( "  * Body part is hair" ) );
+				}
 				else
 				{
 					UE_LOG( LogCharacter, Log, TEXT( "  * Body part is cloth" ) );
@@ -599,8 +606,8 @@ USkeletalMeshComponent* AHuman::CreateSkeletalMeshComponent( FName BodyPartName 
 
 void AHuman::InitializeSkeletalMeshComponent( USkeletalMeshComponent* SkeletalMeshComponent )
 {
-	SkeletalMeshComponent->bUseAttachParentBound = true;
-
+	if( SkeletalMeshComponent->GetFName() == UEnum::GetValueAsName( EBodyPartType::Hair ) ) SkeletalMeshComponent->bUseAttachParentBound = true;
+	
 	RemoveOwnedComponent( SkeletalMeshComponent );
 	SkeletalMeshComponent->CreationMethod = EComponentCreationMethod::Instance;
 	AddOwnedComponent( SkeletalMeshComponent );
@@ -619,7 +626,7 @@ void AHuman::RefreshLeaderComponent( USkeletalMeshComponent* SkeletalMeshCompone
 	}
 	else
 	{
-		UE_LOG( LogCharacter, Log, TEXT( "  * Has an animation BP" ) );
+		UE_LOG( LogCharacter, Log, TEXT( "  * Has an animation BP, so no leader" ) );
 		SkeletalMeshComponent->SetLeaderPoseComponent( nullptr );
 	}
 }
@@ -872,9 +879,42 @@ void AHuman::SetEffect( float EffectNumber )
 	USkeletalMeshComponent* HeadComponent = GetHeadComponent();
 	if( HeadComponent && HeadMeshData && HumanStateData.Effect != EffectNumber )
 	{
+		EffectNumber = FMath::CeilToFloat(EffectNumber);
 		HumanStateData.Effect = EffectNumber;
 
-		HeadComponent->SetCustomPrimitiveDataFloat( 33, EffectNumber );
+		if( EffectNumber >= 0 && EffectNumber <= 3.01)
+		{
+			HeadComponent->SetCustomPrimitiveDataFloat( 33, EffectNumber );
+
+			
+		}
+		else
+		{
+			HeadComponent->SetCustomPrimitiveDataFloat( 33, 0 );
+		}
+
+		if( EffectNumber >= 0.99 && EffectNumber < 1.99)
+		{
+			for(uint8 EyeIndex = 0; EyeIndex < Eyes->GetInstanceCount(); EyeIndex++ )
+			{
+				#if WITH_EDITOR
+				Eyes->SetCustomDataValue( EyeIndex, 19, HumanBodyData.EyeCustomData.MaxCryingEffect, true );
+				#else
+				Eyes->SetCustomDataValue( EyeIndex, 19, HumanBodyData.EyeCustomData.MaxCryingEffect );
+				#endif
+			}
+		}
+		else
+		{
+			for( uint8 EyeIndex = 0; EyeIndex < Eyes->GetInstanceCount(); EyeIndex++ )
+			{
+				#if WITH_EDITOR
+				Eyes->SetCustomDataValue( EyeIndex, 19, 0, true );
+				#else
+				Eyes->SetCustomDataValue( EyeIndex, 19, 0 );
+				#endif
+			}
+		}
 	}
 }
 
@@ -955,6 +995,7 @@ void AHuman::SetEyesBleeding( float BleedingCoef, TArray<int32>& EyesIndex )
 					Eyes->SetCustomDataValue( EyeIndex, 8, ColorFinal.R );
 					Eyes->SetCustomDataValue( EyeIndex, 9, ColorFinal.G );
 					Eyes->SetCustomDataValue( EyeIndex, 10, ColorFinal.B );
+					Eyes->SetCustomDataValue( EyeIndex, 19, 0.075*BleedingCoef );
 					Eyes->SetCustomDataValue( EyeIndex, 11, BleedingCoef, true );
 					#else
 					Eyes->SetCustomDataValue( EyeIndex, 8, ColorFinal.R );
@@ -1003,67 +1044,123 @@ void AHuman::UpdateMainBodyAnimation( UAnimSequence* AnimationToPlay, float InAn
 	MainBodyAnimationToPlay = AnimationToPlay;
 	AnimPlayRate = InAnimPlayRate;
 	SetArkitName_Editor( InIphoneName );
+	SetEditorAnimationBP( EditorAnimationBP );
 }
 
 void AHuman::DebugAnimationDatasRuntime()
 {
-	GEngine->AddOnScreenDebugMessage(0, 5, FColor::Cyan, TEXT("--- Starting animation debug ---"));
+	if( !DebugBodyArmCurves && !DebugBodyLegsCurves ) return;
 
-	TArray<FName> BoneNames;
-	FName ArrBone[] = { //TEXT( "clavicle_l" ),
-		//TEXT( "upperarm_l" ),
-		TEXT( "lowerarm_l" ),
-		TEXT( "lowerarm_r" )
-		/*TEXT( "hand_l" ),
-		TEXT( "thigh_l" ),
-		TEXT( "calf_l" ),
-		TEXT( "foot_l" ),
-		TEXT("ball_l")*/};
-
-	BoneNames.Append( ArrBone, 2 );
+	GEngine->AddOnScreenDebugMessage(0, 5, FColor::Cyan, TEXT("--- Starting body curves debug ---"));
 
 	UAnimInstance* AnimInstance = MainBody->GetAnimInstance();
-	
-	if(!AnimInstance) return GEngine->AddOnScreenDebugMessage( 0, 5, FColor::Red, TEXT( "Error: no animation instance..." ) );
+	if( !AnimInstance ) return GEngine->AddOnScreenDebugMessage( 0, 5, FColor::Red, TEXT( "Error: no animation instance..." ) );
 
-	TArray<FName> ActiveCurveNames;
-	AnimInstance->GetActiveCurveNames(EAnimCurveType::AttributeCurve, ActiveCurveNames );
-
-	for( uint8 Index = 0; Index < BoneNames.Num(); Index++ )
+	if( DebugBodyArmCurves )
 	{
-		FName BoneName = BoneNames[Index];
-		int32 NameLength = BoneNames[Index].GetStringLength();
+		TArray<FName> ArmsBoneNames;
+		FName ArrBone[] = { TEXT( "clavicle_l" ),
+		TEXT( "upperarm_l" ),
+		TEXT( "lowerarm_l" ),
+		TEXT( "hand_l" ),
+		TEXT( "clavicle_r" ),
+		TEXT( "upperarm_r" ),
+		TEXT( "lowerarm_r" ),
+		TEXT( "hand_r" )};
 
-		GEngine->AddOnScreenDebugMessage( Index+1, 5, FColor::Cyan, FString::Printf( TEXT( "#### Bone %s ####" ), *BoneName.ToString() ) );
-		FString DebugMessageMorph = TEXT( "- " );
-		FString DebugMessageCurve = TEXT( "- " );
+		ArmsBoneNames.Append( ArrBone, 8 );
 
-		for( uint8 IndexCurve = 0; IndexCurve < ActiveCurveNames.Num(); IndexCurve++ )
+		TArray<FName> ActiveCurveNames;
+		AnimInstance->GetActiveCurveNames( EAnimCurveType::AttributeCurve, ActiveCurveNames );
+
+		for( uint8 Index = 0; Index < ArmsBoneNames.Num(); Index++ )
 		{
-			FName CurveName = ActiveCurveNames[IndexCurve];
+			FName BoneName = ArmsBoneNames[Index];
+			int32 NameLength = ArmsBoneNames[Index].GetStringLength();
 
-			if( CurveName.ToString().StartsWith( BoneName.ToString() ) )
+			GEngine->AddOnScreenDebugMessage( Index + 1, 5, FColor::Cyan, FString::Printf( TEXT( "#### Bone %s ####" ), *BoneName.ToString() ) );
+			FString DebugMessageMorph = TEXT( "- " );
+			FString DebugMessageCurve = TEXT( "- " );
+
+			for( uint8 IndexCurve = 0; IndexCurve < ActiveCurveNames.Num(); IndexCurve++ )
 			{
-				if( CurveName.ToString().EndsWith( TEXT( "_morph" ) ) )
+				FName CurveName = ActiveCurveNames[IndexCurve];
+
+				if( CurveName.ToString().StartsWith( BoneName.ToString() ) )
 				{
-					if( AnimInstance->GetCurveValue( CurveName ) != 0.f )
+					if( CurveName.ToString().EndsWith( TEXT( "_morph" ) ) )
 					{
-						DebugMessageMorph.Append( FString::Printf( TEXT( "%s : %f  ||  " ), *CurveName.ToString(), AnimInstance->GetCurveValue( CurveName ) ) );
+						if( AnimInstance->GetCurveValue( CurveName ) != 0.f )
+						{
+							DebugMessageMorph.Append( FString::Printf( TEXT( "%s : %f  ||  " ), *CurveName.ToString(), AnimInstance->GetCurveValue( CurveName ) ) );
+						}
+					}
+					else
+					{
+						DebugMessageCurve.Append( FString::Printf( TEXT( "%s : %f  ||  " ), *CurveName.ToString(), AnimInstance->GetCurveValue( CurveName ) ) );
 					}
 				}
-				else
+			}
+			GEngine->AddOnScreenDebugMessage( ( Index + 1 ) * 100, 5, FColor::Cyan, DebugMessageCurve );
+			GEngine->AddOnScreenDebugMessage( ( Index + 1 ) * 100 + 1, 5, FColor::Cyan, DebugMessageMorph );
+		}
+	}
+
+	if( DebugBodyLegsCurves )
+	{
+		TArray<FName> LegsBoneNames;
+		FName ArrBone[] = { TEXT( "thigh_l" ),
+		TEXT( "calf_l" ),
+		TEXT( "foot_l" ),
+		TEXT( "ball_l" ),
+		TEXT( "thigh_r" ),
+		TEXT( "calf_r" ),
+		TEXT( "foot_r" ),
+		TEXT( "ball_r" )};
+
+		LegsBoneNames.Append( ArrBone, 8 );
+
+		TArray<FName> ActiveCurveNames;
+		AnimInstance->GetActiveCurveNames( EAnimCurveType::AttributeCurve, ActiveCurveNames );
+
+		for( uint8 Index = 0; Index < LegsBoneNames.Num(); Index++ )
+		{
+			FName BoneName = LegsBoneNames[Index];
+			int32 NameLength = LegsBoneNames[Index].GetStringLength();
+
+			GEngine->AddOnScreenDebugMessage( Index + 1, 5, FColor::Cyan, FString::Printf( TEXT( "#### Bone %s ####" ), *BoneName.ToString() ) );
+			FString DebugMessageMorph = TEXT( "- " );
+			FString DebugMessageCurve = TEXT( "- " );
+
+			for( uint8 IndexCurve = 0; IndexCurve < ActiveCurveNames.Num(); IndexCurve++ )
+			{
+				FName CurveName = ActiveCurveNames[IndexCurve];
+
+				if( CurveName.ToString().StartsWith( BoneName.ToString() ) )
 				{
-					DebugMessageCurve.Append( FString::Printf( TEXT( "%s : %f  ||  " ), *CurveName.ToString(), AnimInstance->GetCurveValue( CurveName ) ) );
+					if( CurveName.ToString().EndsWith( TEXT( "_morph" ) ) )
+					{
+						if( AnimInstance->GetCurveValue( CurveName ) != 0.f )
+						{
+							DebugMessageMorph.Append( FString::Printf( TEXT( "%s : %f  ||  " ), *CurveName.ToString(), AnimInstance->GetCurveValue( CurveName ) ) );
+						}
+					}
+					else
+					{
+						DebugMessageCurve.Append( FString::Printf( TEXT( "%s : %f  ||  " ), *CurveName.ToString(), AnimInstance->GetCurveValue( CurveName ) ) );
+					}
 				}
 			}
+			GEngine->AddOnScreenDebugMessage( ( Index + 1 ) * 100, 5, FColor::Cyan, DebugMessageCurve );
+			GEngine->AddOnScreenDebugMessage( ( Index + 1 ) * 100 + 1, 5, FColor::Cyan, DebugMessageMorph );
 		}
-		GEngine->AddOnScreenDebugMessage( ( Index + 1 ) * 100, 5, FColor::Cyan, DebugMessageCurve );
-		GEngine->AddOnScreenDebugMessage( ( Index + 1 ) * 100 + 1, 5, FColor::Cyan, DebugMessageMorph );
 	}
 }
 
 void AHuman::DebugMorphTargetDatasRuntime()
 {
+	if(!DebugBodyFaceCurves) return;
+
 	USkeletalMeshComponent* HeadComponent = GetHeadComponent();
 	if( HeadComponent )
 	{
@@ -1115,6 +1212,20 @@ void AHuman::DebugMorphTargetDatasRuntime()
 void AHuman::SetEditorAnimationBP( TSubclassOf<UAnimInstance> InAnimationBP )
 {
 	EditorAnimationBP = InAnimationBP;
+
+	if( EditorAnimationBP )
+	{
+		MainBody->SetAnimInstanceClass( EditorAnimationBP );
+	}
+	else
+	{
+		
+		UMainBodyMeshData* MainBodyData = Cast<UMainBodyMeshData>( HumanBodyData.MainBody.MeshData );
+		if( MainBodyData )
+		{
+			MainBody->SetAnimInstanceClass( MainBodyData->BodyAnimationBlueprint );
+		}
+	}
 }
 
 UAnimSequence* AHuman::GetAnimationPreview() const

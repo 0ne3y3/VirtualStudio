@@ -96,7 +96,7 @@ class CHARACTERSEDITOR_API UCharacterCreationUtility : public UEditorUtilityWidg
 	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Effect", meta = ( DisplayName = "Eyes bleeding", ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
 	TArray<float> EyesBleeding;
 
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Effect", meta = ( DisplayName = "Eyes emissive", ClampMin = 0, ClampMax = 2, UIMin = 0, UIMax = 2 ) )
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Effect", meta = ( DisplayName = "Eyes emissive", ClampMin = 0, ClampMax = 10, UIMin = 0, UIMax = 10 ) )
 	TArray<float> EyesEmissive;
 
 	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Effect", meta = ( DisplayName = "Pupil Scale", ClampMin = 0, ClampMax = 2, UIMin = 0, UIMax = 2 ) )

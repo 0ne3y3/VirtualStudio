@@ -36,9 +36,6 @@ class CHARACTERS_API AHuman : public ALivingBeing
 
 	bool ShouldTickIfViewportsOnly() const override;
 
-	//FORCEINLINE virtual bool IsTickableWhenPaused() const;
-	//FORCEINLINE virtual bool IsTickableInEditor() const;
-
 	/* Setup the main body skeletal mesh and its materials/customdata, called OnConstruction script. */
 	UFUNCTION( BlueprintCallable )
 	bool SetupMainBody( USkeletalMeshData* MeshData );
@@ -231,6 +228,15 @@ class CHARACTERS_API AHuman : public ALivingBeing
 
 		/* Set the name for ARKit name editor */
 		FORCEINLINE virtual void SetArkitName_Editor( FName InName ) {};
+
+		UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Debug", meta = ( DisplayName = "Debug arm curves" ) )
+		bool DebugBodyArmCurves = false;
+
+		UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Debug", meta = ( DisplayName = "Debug legs curves" ) )
+		bool DebugBodyLegsCurves = false;
+
+		UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Debug", meta = ( DisplayName = "Debug face curves" ) )
+		bool DebugBodyFaceCurves = false;
 
 		protected:
 		UPROPERTY( BlueprintReadOnly, BlueprintGetter = GetAnimationPreview )

@@ -424,7 +424,7 @@ struct CHARACTERS_API FModularStaticMeshData
 };
 
 /**
- * UMainBodyMeshData
+ * UMeshData
  *
  * Non-mutable data asset that contains properties used to define the main body of a human.
  */
@@ -489,6 +489,19 @@ class CHARACTERS_API UHeadMeshData : public USkeletalMeshData
 
 	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Animation" )
 	TSubclassOf<UAnimInstance> HeadAnimationBlueprint;
+};
+
+/**
+ * UHairMeshData
+ *
+ * Non-mutable data asset that contains properties used to define the hair of a human.
+ */
+UCLASS( BlueprintType, Const, Meta = ( DisplayName = "Hair skeletal mesh data", ShortTooltip = "Data asset used to define hairs of a human." ) )
+class CHARACTERS_API UHairMeshData : public USkeletalMeshData
+{
+	GENERATED_BODY()
+
+	
 };
 
 /**
