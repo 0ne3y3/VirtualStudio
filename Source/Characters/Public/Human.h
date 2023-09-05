@@ -73,7 +73,7 @@ class CHARACTERS_API AHuman : public ALivingBeing
 	void UpdateEyeDefaultPosition();
 
 	/* Update the eye position/scale, each frame. */
-	void UpdateEyesAnimation();
+	void UpdateEyesAnimation( float DeltaTime );
 
 	/* Setup all skeletal mesh components, called OnConstruction script. */
 	UFUNCTION(BlueprintCallable)
@@ -112,6 +112,10 @@ class CHARACTERS_API AHuman : public ALivingBeing
 
 	/* Update the head animation, each frame. */
 	void UpdateHeadAnimation();
+
+	/* Update tears meshes */
+	UFUNCTION( BlueprintCallable )
+	void UpdateTearsMeshes( UHeadMeshData* HeadData );
 
 	/* Set bIsFirstInit variable to true, so OnConstruction script can run. */
 	UFUNCTION( BlueprintCallable )
@@ -175,6 +179,9 @@ class CHARACTERS_API AHuman : public ALivingBeing
 	UFUNCTION( BlueprintCallable )
 	void SetPupilScale( float PupilScale, TArray<int32>& EyesIndex );
 
+	UFUNCTION( BlueprintCallable )
+	void SetHighlightStrength( float HighlightStrength, TArray<int32>& EyesIndex );
+
 	protected:
 
 	bool bIsFirstInit = false;
@@ -196,6 +203,10 @@ class CHARACTERS_API AHuman : public ALivingBeing
 	/* All skeletal mesh component of the human */
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Character|Components" )
 	TArray<TObjectPtr<USkeletalMeshComponent>> SkeletalComponents;
+
+	/* Main body of the character, it drive all modular body parts */
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Character|Components", meta = ( AllowPrivateAccess = "true" ) )
+	TObjectPtr<UStaticMeshComponent> TearsSM;
 	
 	/* Struct containing all the human body information */
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Character|Data", meta = ( ExposeOnSpawn = true), BlueprintSetter = SetHumanBodyData )
@@ -219,6 +230,8 @@ class CHARACTERS_API AHuman : public ALivingBeing
 		void UpdateMainBodyAnimation( UAnimSequence* AnimationToPlay, float InAnimPlayRate, FName InIphoneName );
 
 		void SetEditorAnimationBP( TSubclassOf<UAnimInstance> InAnimationBP);
+
+		void SetTestBlinkEditor(bool bIsBlinking);
 
 		UFUNCTION( BlueprintGetter )
 		float GetAnimationPlayRate() const;
@@ -247,6 +260,15 @@ class CHARACTERS_API AHuman : public ALivingBeing
 
 		UPROPERTY( BlueprintReadOnly, BlueprintGetter = GetAnimationPlayRate )
 		float AnimPlayRate;
+
+		UPROPERTY( BlueprintReadOnly )
+		bool bTestBlinkEditor = false;
+
+		UPROPERTY( BlueprintReadOnly )
+		float BlinkEditorWeight = 0.f;
+
+		UPROPERTY( BlueprintReadOnly )
+		float BlinkEditorCoef = 1.f;
 
 		void DebugAnimationDatasRuntime();
 		void DebugMorphTargetDatasRuntime();

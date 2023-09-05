@@ -24,6 +24,9 @@ AHuman::AHuman( const FObjectInitializer& ObjectInitializer ) : Super( ObjectIni
 	//MainBody->SetComponentTickEnabled( false );
 	/* Apply all default parameter, see later what to set as project goes */
 
+	TearsSM = CreateDefaultSubobject<UStaticMeshComponent>( TEXT("TearsEffect") );
+	TearsSM->SetVisibility( false );
+
 	Eyes = CreateDefaultSubobject<UInstancedStaticMeshComponent>( AHuman::EyesName );
 	//Eyes->SetComponentTickEnabled( false );
 }
@@ -49,7 +52,37 @@ void AHuman::Tick( float DeltaTime )
 
 	UpdateHeadAnimation();
 
-	UpdateEyesAnimation();
+	#if WITH_EDITOR
+	if( bTestBlinkEditor )
+	{
+		USkeletalMeshComponent* HeadComponent = GetHeadComponent();
+		if( HeadComponent )
+		{
+			UAnimInstance* HeadAnimInstance = HeadComponent->GetAnimInstance();
+			if( HeadAnimInstance )
+			{
+				BlinkEditorWeight += 10 * DeltaTime * BlinkEditorCoef;
+
+				if( BlinkEditorWeight >= 1.f )
+				{
+					BlinkEditorWeight = 1.f;
+					BlinkEditorCoef = -1.f;
+				}
+				else if( BlinkEditorWeight <= 0.f )
+				{
+					BlinkEditorWeight = 0.f;
+					BlinkEditorCoef = -1.f;
+					bTestBlinkEditor = false;
+				}
+
+				HeadAnimInstance->AddCurveValue( TEXT( "EyeBlinkLeft" ), BlinkEditorWeight);
+				HeadAnimInstance->AddCurveValue( TEXT( "EyeBlinkRight" ), BlinkEditorWeight );
+			}
+		}
+	}
+	#endif
+
+	UpdateEyesAnimation( DeltaTime );
 
 	#if WITH_EDITOR
 	DebugAnimationDatasRuntime();
@@ -295,12 +328,18 @@ void AHuman::UpdateNumberOfEyeInstance( int32 NumberOfEyes, USkeletalMeshCompone
 	HumanStateData.EyesBleeding.Empty();
 	HumanStateData.PupilScale.Empty();
 	HumanStateData.EyesEmissive.Empty();
+	HumanStateData.HighlightStrength.Empty();
+	HumanStateData.LastFrameEyeBlink.Empty();
 	for(int32 Index = 0; Index < NumberOfEyes; Index++ )
 	{
 		HumanStateData.EyesBleeding.Add( 0 );
 		HumanStateData.PupilScale.Add( 1 );
 		HumanStateData.EyesEmissive.Add( 0 );
 	}
+
+	HumanStateData.HighlightStrength.Init( 0, 2 );
+	HumanStateData.LastFrameEyeBlink.Init( 0, 2 );
+	
 }
 
 void AHuman::UpdateEyesMaterial(int32 MaterialIndex)
@@ -371,7 +410,7 @@ void AHuman::UpdateEyeDefaultPosition()
 	}
 }
 
-void AHuman::UpdateEyesAnimation()
+void AHuman::UpdateEyesAnimation( float DeltaTime )
 {
 	USkeletalMeshComponent* HeadComponent = GetHeadComponent();
 	
@@ -446,9 +485,45 @@ void AHuman::UpdateEyesAnimation()
 		float ScalingClampedRight = FMath::Max( ( 1 - EyeWideRight ), HeadMeshData->EyesMinimumScale );
 		FVector2D IrisScaleRight( HumanBodyData.EyeCustomData.GetCustomDataValue( 1, 4 ) * ScalingClampedRight, HumanBodyData.EyeCustomData.GetCustomDataValue( 1, 5 ) * ScalingClampedRight );
 
-		float EyelashPositionLeft = HumanBodyData.EyeCustomData.GetCustomDataValue( 0, 17 ) + EyeWideLeft * HumanBodyData.EyeCustomData.EyelashShadowWeightOpen - HeadAnimInstance->GetCurveValue("EyeBlinkLeft") * HumanBodyData.EyeCustomData.EyelashShadowWeightClose;
-		float EyelashPositionRight = HumanBodyData.EyeCustomData.GetCustomDataValue( 1, 17 ) + EyeWideRight * HumanBodyData.EyeCustomData.EyelashShadowWeightOpen - HeadAnimInstance->GetCurveValue("EyeBlinkRight") * HumanBodyData.EyeCustomData.EyelashShadowWeightClose;
+		/* Highlight strength : when eye blink, animate the eye highlight for some live2d'esque effect. Calculate some velocity and accumulate strength
+		*/
+		float EyeBlinkLeft = HeadAnimInstance->GetCurveValue( "EyeBlinkLeft" );
+		float EyeBlinkRight = HeadAnimInstance->GetCurveValue( "EyeBlinkRight" );
+
+		if( HumanStateData.LastFrameEyeBlink.Num() == 2 && HumanStateData.HighlightStrength.Num() == 2 )
+		{
+			float EyelashLeftVelocity = ( HumanStateData.LastFrameEyeBlink[0] - EyeBlinkLeft ) * (DeltaTime * 85);
+			float EyelashRightVelocity = ( HumanStateData.LastFrameEyeBlink[1] - EyeBlinkRight ) * (DeltaTime * 85);
+
+			if( EyelashLeftVelocity > 0.1f )
+			{
+				HumanStateData.HighlightStrength[0] = FMath::Min( HumanStateData.HighlightStrength[0] + EyelashLeftVelocity, 1);
+			}
+			else
+			{
+				HumanStateData.HighlightStrength[0] = FMath::Max( HumanStateData.HighlightStrength[0] - DeltaTime * 0.60, 0 );
+			}
+			HumanStateData.LastFrameEyeBlink[0] = EyeBlinkLeft;
+
+			if( EyelashRightVelocity > 0.1f )
+			{
+				HumanStateData.HighlightStrength[1] = FMath::Min( HumanStateData.HighlightStrength[1] + EyelashRightVelocity, 1 );
+			}
+			else
+			{
+				HumanStateData.HighlightStrength[1] = FMath::Max( HumanStateData.HighlightStrength[1] - DeltaTime * 0.60, 0 );
+			}
+
+			HumanStateData.LastFrameEyeBlink[1] = EyeBlinkRight;
+		}
 		
+
+		/* Dark sclera position : the shadow below the eyelash on the sclera
+		*/
+		float EyelashPositionLeft = HumanBodyData.EyeCustomData.GetCustomDataValue( 0, 17 ) + EyeWideLeft * HumanBodyData.EyeCustomData.EyelashShadowWeightOpen - EyeBlinkLeft * HumanBodyData.EyeCustomData.EyelashShadowWeightClose;
+		float EyelashPositionRight = HumanBodyData.EyeCustomData.GetCustomDataValue( 1, 17 ) + EyeWideRight * HumanBodyData.EyeCustomData.EyelashShadowWeightOpen - EyeBlinkRight * HumanBodyData.EyeCustomData.EyelashShadowWeightClose;
+
+
 		uint8 NumberOfEyes = Eyes->GetInstanceCount();
 
 		// Set custom data for all instances
@@ -461,6 +536,7 @@ void AHuman::UpdateEyesAnimation()
 				Eyes->SetCustomDataValue( EyeIndex, 5, IrisScaleRight.Y );
 				Eyes->SetCustomDataValue( EyeIndex, 6, IrisPositionRight.X );
 				Eyes->SetCustomDataValue( EyeIndex, 7, IrisPositionRight.Y );
+				if( HumanStateData.HighlightStrength.IsValidIndex(1) ) Eyes->SetCustomDataValue( EyeIndex, 24, HumanStateData.HighlightStrength[1] );
 
 				if( EyeIndex == NumberOfEyes - 1 )
 				{
@@ -478,6 +554,7 @@ void AHuman::UpdateEyesAnimation()
 				Eyes->SetCustomDataValue( EyeIndex, 5, IrisScaleLeft.Y );
 				Eyes->SetCustomDataValue( EyeIndex, 6, IrisPositionLeft.X );
 				Eyes->SetCustomDataValue( EyeIndex, 7, IrisPositionLeft.Y );
+				if( HumanStateData.HighlightStrength.IsValidIndex( 0 ) )Eyes->SetCustomDataValue( EyeIndex, 24, HumanStateData.HighlightStrength[0]);
 
 				if( EyeIndex == NumberOfEyes - 1 )
 				{
@@ -539,8 +616,13 @@ void AHuman::SetupOneSkeletalMeshComponent( FModularSkeletalMeshData& SkeletalMe
 					BodyComponent->SetDefaultCustomPrimitiveDataFloat( 35, 1.01f );
 					#endif
 					
-
 					UpdateHeadAnimInstance();
+
+					TearsSM->AttachToComponent( BodyComponent, FAttachmentTransformRules::SnapToTargetIncludingScale, FName("head"));
+					TearsSM->SetRelativeRotation(FRotator(-90,0,0)); // somehow it's not the same rotation as the face
+					( HumanStateData.Effect == 1 ) ? TearsSM->SetVisibility(true) : TearsSM->SetVisibility(false);
+					UpdateTearsMeshes( HeadMeshData );
+
 				}
 				else if( SkeletalMeshData.MeshData->MeshType == EBodyPartType::Hair )
 				{
@@ -549,9 +631,27 @@ void AHuman::SetupOneSkeletalMeshComponent( FModularSkeletalMeshData& SkeletalMe
 				else
 				{
 					UE_LOG( LogCharacter, Log, TEXT( "  * Body part is cloth" ) );
-					TArray<float> SkinData = HumanBodyData.SkinAndFaceCustomData.CombineSkinData();
+										
+					TArray<float> CustomData = HumanBodyData.SkinAndFaceCustomData.CombineSkinData();
+					FClothCustomData ClothData = (SkeletalMeshData.bUseCustomDataCloth ) ? SkeletalMeshData.ClothCustomData : SkeletalMeshData.MeshData->DefaultClothCustomData;
+					
+					// TODO: need an tmap for using skin for each body part
+					if( !ClothData.bUseSkin )
+					{
+						CustomData[10] = ClothData.GetFloatCustomDataValue( 10 );
+						CustomData[11] = ClothData.GetFloatCustomDataValue( 11 );
+						CustomData[12] = ClothData.GetFloatCustomDataValue( 12 );
+						CustomData[13] = ClothData.GetFloatCustomDataValue( 13 );
+					}
+					
+					TArray<float> ClothCustomData = ClothData.CombineClothValues( FSkinFaceCustomData::EndIndexSkin );
+					for(uint8 Index = 0; Index < ClothCustomData.Num(); Index++)
+					{
+						CustomData.Add( ClothCustomData[Index] );
+					}
+
 					// combine cloth data and send merge both array
-					UpdateSkeletalMeshCustomData( BodyComponent, SkinData, SkeletalMeshData.MeshData->MeshType);
+					UpdateSkeletalMeshCustomData( BodyComponent, CustomData, SkeletalMeshData.MeshData->MeshType);
 
 					// TODO: Temporary set all body mask to default, later make function updateMainBodyMask
 					BodyComponent->SetCustomPrimitiveDataFloat( 22, 0.f );
@@ -606,7 +706,7 @@ USkeletalMeshComponent* AHuman::CreateSkeletalMeshComponent( FName BodyPartName 
 
 void AHuman::InitializeSkeletalMeshComponent( USkeletalMeshComponent* SkeletalMeshComponent )
 {
-	if( SkeletalMeshComponent->GetFName() == UEnum::GetValueAsName( EBodyPartType::Hair ) ) SkeletalMeshComponent->bUseAttachParentBound = true;
+	if( SkeletalMeshComponent->GetFName() != UEnum::GetValueAsName( EBodyPartType::Hair ) ) SkeletalMeshComponent->bUseAttachParentBound = true;
 	
 	RemoveOwnedComponent( SkeletalMeshComponent );
 	SkeletalMeshComponent->CreationMethod = EComponentCreationMethod::Instance;
@@ -882,38 +982,41 @@ void AHuman::SetEffect( float EffectNumber )
 		EffectNumber = FMath::CeilToFloat(EffectNumber);
 		HumanStateData.Effect = EffectNumber;
 
-		if( EffectNumber >= 0 && EffectNumber <= 3.01)
+		if( EffectNumber >= 0 && EffectNumber <= 3.01) // face effect
 		{
 			HeadComponent->SetCustomPrimitiveDataFloat( 33, EffectNumber );
-
-			
 		}
 		else
 		{
 			HeadComponent->SetCustomPrimitiveDataFloat( 33, 0 );
+			
 		}
 
-		if( EffectNumber >= 0.99 && EffectNumber < 1.99)
+		if( EffectNumber >= 0.99 && EffectNumber < 1.99) // Crying effect only
 		{
 			for(uint8 EyeIndex = 0; EyeIndex < Eyes->GetInstanceCount(); EyeIndex++ )
 			{
 				#if WITH_EDITOR
-				Eyes->SetCustomDataValue( EyeIndex, 19, HumanBodyData.EyeCustomData.MaxCryingEffect, true );
+				Eyes->SetCustomDataValue( EyeIndex, 22, HumanBodyData.EyeCustomData.MaxCryingEffect, true );
 				#else
-				Eyes->SetCustomDataValue( EyeIndex, 19, HumanBodyData.EyeCustomData.MaxCryingEffect );
+				Eyes->SetCustomDataValue( EyeIndex, 22, HumanBodyData.EyeCustomData.MaxCryingEffect );
 				#endif
 			}
+
+			TearsSM->SetVisibility( true );
 		}
 		else
 		{
 			for( uint8 EyeIndex = 0; EyeIndex < Eyes->GetInstanceCount(); EyeIndex++ )
 			{
 				#if WITH_EDITOR
-				Eyes->SetCustomDataValue( EyeIndex, 19, 0, true );
+				Eyes->SetCustomDataValue( EyeIndex, 22, 0, true );
 				#else
-				Eyes->SetCustomDataValue( EyeIndex, 19, 0 );
+				Eyes->SetCustomDataValue( EyeIndex, 22, 0 );
 				#endif
 			}
+
+			TearsSM->SetVisibility( false );
 		}
 	}
 }
@@ -939,6 +1042,22 @@ void AHuman::UpdateHeadAnimation()
 	}
 }
 
+void AHuman::UpdateTearsMeshes( UHeadMeshData* HeadData )
+{
+	if( UStaticMesh* TearsMesh = HeadData->TearsMesh.LoadSynchronous() )
+	{
+		TearsSM->SetStaticMesh( TearsMesh );
+
+		if(UMaterialInstance* TearsMaterial = HeadData->TearsMaterial.LoadSynchronous() ) TearsSM->SetMaterial( 0, TearsMaterial );
+	}
+	else
+	{
+		TearsSM->SetVisibility(false);
+	}
+
+	// niagara mesh if any
+}
+
 void AHuman::SetEyesEmissive( float EmissiveCoef, TArray<int32>& EyesIndex )
 {
 	USkeletalMeshComponent* HeadComponent = GetHeadComponent();
@@ -959,9 +1078,9 @@ void AHuman::SetEyesEmissive( float EmissiveCoef, TArray<int32>& EyesIndex )
 				if( Eyes->IsValidInstance( EyeIndex ) )
 				{
 					#if WITH_EDITOR
-					Eyes->SetCustomDataValue( EyeIndex, 20, EmissiveCoef, true );
+					Eyes->SetCustomDataValue( EyeIndex, 23, EmissiveCoef, true );
 					#else
-					Eyes->SetCustomDataValue( EyeIndex, 20, EmissiveCoef );
+					Eyes->SetCustomDataValue( EyeIndex, 23, EmissiveCoef );
 					#endif
 				}
 			}
@@ -995,12 +1114,13 @@ void AHuman::SetEyesBleeding( float BleedingCoef, TArray<int32>& EyesIndex )
 					Eyes->SetCustomDataValue( EyeIndex, 8, ColorFinal.R );
 					Eyes->SetCustomDataValue( EyeIndex, 9, ColorFinal.G );
 					Eyes->SetCustomDataValue( EyeIndex, 10, ColorFinal.B );
-					Eyes->SetCustomDataValue( EyeIndex, 19, 0.075*BleedingCoef );
+					Eyes->SetCustomDataValue( EyeIndex, 22, 0.075*BleedingCoef );
 					Eyes->SetCustomDataValue( EyeIndex, 11, BleedingCoef, true );
 					#else
 					Eyes->SetCustomDataValue( EyeIndex, 8, ColorFinal.R );
 					Eyes->SetCustomDataValue( EyeIndex, 9, ColorFinal.G );
 					Eyes->SetCustomDataValue( EyeIndex, 10, ColorFinal.B );
+					Eyes->SetCustomDataValue( EyeIndex, 22, 0.075 * BleedingCoef );
 					Eyes->SetCustomDataValue( EyeIndex, 11, BleedingCoef );
 					#endif
 				}
@@ -1028,9 +1148,39 @@ void AHuman::SetPupilScale( float PupilScale, TArray<int32>& EyesIndex )
 
 				if( Eyes->IsValidInstance( EyeIndex ) ){
 					#if WITH_EDITOR
-					Eyes->SetCustomDataValue( EyeIndex, 21, PupilScale, true );
+					Eyes->SetCustomDataValue( EyeIndex, 25, PupilScale, true );
 					#else
-					Eyes->SetCustomDataValue( EyeIndex, 21, PupilScale );
+					Eyes->SetCustomDataValue( EyeIndex, 25, PupilScale );
+					#endif
+				}
+			}
+		}
+	}
+}
+
+void AHuman::SetHighlightStrength( float HighlightStrength, TArray<int32>& EyesIndex )
+{
+	USkeletalMeshComponent* HeadComponent = GetHeadComponent();
+	if( HeadComponent && HeadMeshData )
+	{
+		uint8 NumberOfEyes = Eyes->GetInstanceCount();
+
+		if( NumberOfEyes <= 0 ) return;
+
+		for( float EyeIndex : EyesIndex )
+		{
+			if( HumanStateData.HighlightStrength.IsValidIndex( EyeIndex ) )
+			{
+				if( HumanStateData.HighlightStrength[EyeIndex] == HighlightStrength ) continue;
+
+				HumanStateData.HighlightStrength[EyeIndex] = HighlightStrength;
+
+				if( Eyes->IsValidInstance( EyeIndex ) )
+				{
+					#if WITH_EDITOR
+					Eyes->SetCustomDataValue( EyeIndex, 24, HighlightStrength, true );
+					#else
+					Eyes->SetCustomDataValue( EyeIndex, 24, HighlightStrength );
 					#endif
 				}
 			}
@@ -1237,10 +1387,11 @@ float AHuman::GetAnimationPlayRate() const
 {
 	return AnimPlayRate;
 }
-#endif // WITH_EDITORONLY_DATA
 
-/*
-TODO:
-Fix head shadow (agane)
-Fix mouth shape for MouthPucker (probably), blend badly with jaw opening
-*/
+void AHuman::SetTestBlinkEditor( bool bIsBlinking )
+{
+	bTestBlinkEditor = bIsBlinking;
+	BlinkEditorCoef = 1;
+}
+
+#endif // WITH_EDITORONLY_DATA

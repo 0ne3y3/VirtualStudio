@@ -34,6 +34,9 @@ class CHARACTERSEDITOR_API UCharacterCreationUtility : public UEditorUtilityWidg
 	UFUNCTION()
 	void SaveButtonClicked();
 
+	UFUNCTION()
+	void BlinkButtonClicked();
+
 	bool IsAnimSequenceCompatible();
 
 	virtual void NativeConstruct() override;
@@ -71,6 +74,9 @@ class CHARACTERSEDITOR_API UCharacterCreationUtility : public UEditorUtilityWidg
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, meta = ( BindWidget ) )
 	TObjectPtr<UButton> LoadButton;
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, meta = ( BindWidget ) )
+	TObjectPtr<UButton> BlinkButton;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
 	FHumanBodyData CharacterProperties;

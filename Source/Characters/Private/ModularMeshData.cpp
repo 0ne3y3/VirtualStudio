@@ -45,6 +45,12 @@ float FEyeCustomData::GetCustomDataValue( int32 EyeIndex, int32 CustomDataIndex 
 		return ( ScleraShadowOffset.IsValidIndex( EyeIndex ) ) ? ScleraShadowOffset[EyeIndex].X : 0;
 		case 17:
 		return ( ScleraShadowOffset.IsValidIndex( EyeIndex ) ) ? ScleraShadowOffset[EyeIndex].Y : 0;
+		case 19:
+		return ( HighlightMaxRotation.IsValidIndex( EyeIndex ) ) ? HighlightMaxRotation[EyeIndex] : 0;
+		case 20:
+		return ( HighlightMaxScale.IsValidIndex( EyeIndex ) ) ? HighlightMaxScale[EyeIndex].X : 0;
+		case 21:
+		return ( HighlightMaxScale.IsValidIndex( EyeIndex ) ) ? HighlightMaxScale[EyeIndex].Y : 0;
 		default:
 		return 0;
 	}
@@ -188,4 +194,66 @@ FModularSkeletalMeshData FHumanBodyData::GetHeadData()
 	}
 
 	return FModularSkeletalMeshData();
+}
+
+FClothCustomData::FClothCustomData()
+{
+	// https://benui.ca/unreal/uproperty/#editfixedsize
+	ClothColorCurve = {0, 0, 1, 1};
+	ClothBaseMetallic = { 0.f, 0.f, 0.f, 0.f };
+	ClothBaseRoughness = { 0.f, 0.f, 0.f, 0.f };
+	ClothBaseSpecular = { 0.f, 0.f, 0.f, 0.f };
+}
+
+float FClothCustomData::GetFloatCustomDataValue( int32 CustomDataIndex )
+{
+	switch( CustomDataIndex )
+	{
+		case 10:
+		return ( ClothColorCurve.IsValidIndex( 0 ) ) ? ClothColorCurve[0] : 0;
+		case 11:
+		return ( ClothBaseSpecular.IsValidIndex( 0 ) ) ? ClothBaseSpecular[0] : 0;
+		case 12:
+		return ( ClothBaseRoughness.IsValidIndex( 0 ) ) ? ClothBaseRoughness[0] : 0;
+		case 13:
+		return ( ClothBaseMetallic.IsValidIndex( 0 ) ) ? ClothBaseMetallic[0] : 0;
+		case 18:
+		return ( ClothColorCurve.IsValidIndex( 1 ) ) ? ClothColorCurve[1] : 0;
+		case 19:
+		return ( ClothColorCurve.IsValidIndex( 2 ) ) ? ClothColorCurve[2] : 0;
+		case 20:
+		return ( ClothColorCurve.IsValidIndex( 3 ) ) ? ClothColorCurve[3] : 0;
+		case 21:
+		return ( ClothBaseSpecular.IsValidIndex( 1 ) ) ? ClothBaseSpecular[1] : 0;
+		case 22:
+		return ( ClothBaseRoughness.IsValidIndex( 1 ) ) ? ClothBaseRoughness[1] : 0;
+		case 23:
+		return ( ClothBaseMetallic.IsValidIndex( 1 ) ) ? ClothBaseMetallic[1] : 0;
+		case 24:
+		return ( ClothBaseSpecular.IsValidIndex( 2 ) ) ? ClothBaseSpecular[2] : 0;
+		case 25:
+		return ( ClothBaseRoughness.IsValidIndex( 2 ) ) ? ClothBaseRoughness[2] : 0;
+		case 26:
+		return ( ClothBaseMetallic.IsValidIndex( 2 ) ) ? ClothBaseMetallic[2] : 0;
+		case 27:
+		return ( ClothBaseSpecular.IsValidIndex( 3 ) ) ? ClothBaseSpecular[3] : 0;
+		case 28:
+		return ( ClothBaseRoughness.IsValidIndex( 3 ) ) ? ClothBaseRoughness[3] : 0;
+		case 29:
+		return ( ClothBaseMetallic.IsValidIndex( 3 ) ) ? ClothBaseMetallic[3] : 0;
+		default:
+		return 0;
+	}
+}
+
+TArray<float> FClothCustomData::CombineClothValues( int32 EndIndexSkin )
+{
+	TArray<float> ValueArray;
+
+	for( uint32 DataIndex = EndIndexSkin+1; DataIndex <= EndingIndexCloth; DataIndex++ )
+	{
+		ValueArray.Add( GetFloatCustomDataValue( DataIndex ) );
+	}
+
+	return ValueArray;
 }

@@ -96,7 +96,7 @@ struct CHARACTERS_API FEyeCustomData
 
 	public:
 
-	static const int32 MaxCustomData = 22;
+	static const int32 MaxCustomData = 25; // Last custom data index
 	static const int32 LeftRightCustomDataIndex = 18; // At which custom data index we tell the material this is the left or right eye
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|CustomData|General", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ))
@@ -132,6 +132,12 @@ struct CHARACTERS_API FEyeCustomData
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|CustomData|Transform" )
 	TArray<FVector2D> ScleraShadowOffset;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|CustomData|Highlight" )
+	TArray<float> HighlightMaxRotation;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|CustomData|Highlight" )
+	TArray<FVector2D> HighlightMaxScale;
+
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|Material", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
 	int32 MaterialIndex = 0;
 
@@ -153,7 +159,7 @@ struct CHARACTERS_API FEyeCustomData
 /**
 * FClothCustomData
 *
-* Structure containing eye custom data.
+* Structure containing cloth custom data.
 */
 USTRUCT( BlueprintType )
 struct CHARACTERS_API FClothCustomData
@@ -161,15 +167,31 @@ struct CHARACTERS_API FClothCustomData
 
 	GENERATED_USTRUCT_BODY()
 
+	FClothCustomData();
+
 	public:
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth|CustomData|General", meta = ( ClampMin = 0, UIMin = 0 ) )
-	int32 CelshadingCurve;
+	static const int32 EndingIndexCloth = 30;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth|CustomData|Color", meta = ( ClampMin = 0, UIMin = 0 ) )
-	TArray<FColor> ClothColor;
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth|General" )
+	EBodyPartType BodyPart = EBodyPartType::Torso;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth|CustomData|Properties", meta = ( ClampMin = 0, UIMin = 0 ) )
-	TArray<FVector> ClothProperties;
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth|General" )
+	bool bUseSkin = false;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth|CustomData|Color", meta = ( ClampMin = 0, UIMin = 0, EditFixedSize) )
+	TArray<int32> ClothColorCurve;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth|CustomData|Properties", meta = ( ClampMin = 0, UIMin = 0, ClampMax = 1, UIMax = 1, EditFixedSize ) )
+	TArray<float> ClothBaseMetallic;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth|CustomData|Properties", meta = ( ClampMin = 0, UIMin = 0, ClampMax = 1, UIMax = 1, EditFixedSize ) )
+	TArray<float> ClothBaseRoughness;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth|CustomData|Properties", meta = ( ClampMin = 0, UIMin = 0, ClampMax = 1, UIMax = 1, EditFixedSize ) )
+	TArray<float> ClothBaseSpecular;
+
+	float GetFloatCustomDataValue( int32 CustomDataIndex );
+	TArray<float> CombineClothValues( int32 EndIndexSkin );
 };
 
 /**
@@ -183,14 +205,14 @@ struct CHARACTERS_API FSkinFaceCustomData
 
 	GENERATED_USTRUCT_BODY()
 
+	public:
 	static const int32 StartingIndexSkin = 10;
 	static const int32 EndIndexSkin = StartingIndexSkin + 7;
 	static const int32 EndingIndexBody = 21;
 	static const int32 EndingIndexFace = 29;
 	static const int32 MaxCustomDataBody = 33;
 	static const int32 MaxCustomDataFace = 35;
-
-	public:
+	
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Skin|CustomData|Color")
 	int32 SkinAtlasCurve = 0;
 
@@ -483,6 +505,12 @@ class CHARACTERS_API UHeadMeshData : public USkeletalMeshData
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eye|Animation")
 	FVector2D IrisMaxPositionDown;
+
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Effect|Tears" )
+	TSoftObjectPtr<UStaticMesh> TearsMesh;
+
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Effect|Tears" )
+	TSoftObjectPtr<UMaterialInstance> TearsMaterial;
 
 	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Animation" )
 	TObjectPtr<UARKitPresetData> AnimationData;

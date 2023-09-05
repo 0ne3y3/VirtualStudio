@@ -137,6 +137,12 @@ struct CHARACTERS_API FHumanStateData
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes", meta = ( ClampMin = 0, ClampMax = 2, UIMin = 0, UIMax = 2 ) )
 	TArray<float> PupilScale;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes", meta = ( ClampMin = 0, ClampMax = 2, UIMin = 0, UIMax = 2 ) )
+	TArray<float> HighlightStrength;
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Eyes" )
+	TArray<float> LastFrameEyeBlink;
+
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
 	float GlobalWetness;
 

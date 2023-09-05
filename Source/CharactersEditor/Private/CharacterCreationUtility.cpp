@@ -37,6 +37,7 @@ void UCharacterCreationUtility::InitializeEditorWidget()
 
 	SaveButton->OnClicked.AddUniqueDynamic( this, &UCharacterCreationUtility::SaveButtonClicked );
 	LoadButton->OnClicked.AddUniqueDynamic( this, &UCharacterCreationUtility::LoadButtonClicked );
+	BlinkButton->OnClicked.AddUniqueDynamic( this, &UCharacterCreationUtility::BlinkButtonClicked );
 }
 
 void UCharacterCreationUtility::NativeConstruct()
@@ -297,5 +298,13 @@ void UCharacterCreationUtility::UpdatePreviewData()
 		TArray<int32> IndexArray;
 		IndexArray.Add( I );
 		CharacterSpawned->SetPupilScale( PupilScale[I], IndexArray );
+	}
+}
+
+void UCharacterCreationUtility::BlinkButtonClicked()
+{
+	if( CharacterSpawned )
+	{
+		CharacterSpawned->SetTestBlinkEditor( true );
 	}
 }
