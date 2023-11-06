@@ -2,7 +2,6 @@
 
 
 #include "CharacterCreationUtility.h"
-#include "Human.h"
 #include "Components/DetailsView.h"
 #include "Components/Button.h"
 #include "ContentBrowserModule.h"
@@ -12,6 +11,8 @@
 #include "Animation/AnimInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "HumanAnimationData.h"
+#include "Human.h"
+#include "ModularSkeletalMeshComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogCharacter, Log, All );
 
@@ -38,6 +39,7 @@ void UCharacterCreationUtility::InitializeEditorWidget()
 	SaveButton->OnClicked.AddUniqueDynamic( this, &UCharacterCreationUtility::SaveButtonClicked );
 	LoadButton->OnClicked.AddUniqueDynamic( this, &UCharacterCreationUtility::LoadButtonClicked );
 	BlinkButton->OnClicked.AddUniqueDynamic( this, &UCharacterCreationUtility::BlinkButtonClicked );
+	RefreshButton->OnClicked.AddUniqueDynamic( this, &UCharacterCreationUtility::UpdateCharacter );
 }
 
 void UCharacterCreationUtility::NativeConstruct()
@@ -47,6 +49,7 @@ void UCharacterCreationUtility::NativeConstruct()
 	if( UWorld* TheWorld = GetWorld() )
 	{
 		TArray<AActor*> FoundActors;
+		
 		UGameplayStatics::GetAllActorsOfClass( TheWorld, AHuman::StaticClass(), FoundActors );
 
 		if( FoundActors.Num() > 0 )
@@ -54,8 +57,10 @@ void UCharacterCreationUtility::NativeConstruct()
 			CharacterSpawned = Cast<AHuman>(FoundActors[0]);
 			CharacterProperties = CharacterSpawned->GetHumanBodyData();
 			CharacterClass = FoundActors[0]->GetClass();
-			AnimationPreview = CharacterSpawned->GetAnimationPreview();
-			AnimPlayRate = CharacterSpawned->GetAnimationPlayRate();
+			AnimationPreview = CharacterSpawned->MainBodyAnimation_Editor;
+			AnimPlayRate = CharacterSpawned->AnimationPlayRate_Editor;
+			AnimationBP = CharacterSpawned->AnimationBP_Editor;
+
 			UpdateEyesArray();
 		}
 	}
@@ -79,21 +84,21 @@ void UCharacterCreationUtility::UpdateCharacter()
 			CharacterSpawned = TheWorld->SpawnActor<AHuman>( CharacterClass, Parameters );
 		}
 
-		CharacterSpawned->SetEditorAnimationBP( AnimationBP );
+		CharacterSpawned->SetEditorAnimationBP_Editor( AnimationBP );
 		CharacterSpawned->SetHumanBodyData( CharacterProperties );
-		CharacterSpawned->ResetFirstInit();
-		CharacterSpawned->OnConstruction( FTransform() );
+
+		CharacterSpawned->ConstructHumanCharacter();
 
 		UpdateEyesArray();
 		UpdatePreviewData();
 
 		if( AnimationPreview && IsAnimSequenceCompatible() )
 		{
-			CharacterSpawned->UpdateMainBodyAnimation( AnimationPreview, AnimPlayRate, ARKitName );
+			CharacterSpawned->UpdateMainBodyAnimation_Editor( AnimationPreview, AnimPlayRate, ARKitName );
 		}
 		else
 		{
-			CharacterSpawned->UpdateMainBodyAnimation( nullptr, AnimPlayRate, ARKitName );
+			CharacterSpawned->UpdateMainBodyAnimation_Editor( nullptr, AnimPlayRate, ARKitName );
 		}
 	}
 }
@@ -107,7 +112,7 @@ void UCharacterCreationUtility::OnPropertyChangedEditorPreview( FName PropertyNa
 {
 	if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, Effect ) )
 	{
-		CharacterSpawned->SetEffect( Effect );
+		CharacterSpawned->SetFaceEffect( (float)Effect/10.f );
 	}
 	else if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, MainWetness ) )
 	{
@@ -123,11 +128,11 @@ void UCharacterCreationUtility::OnPropertyChangedEditorPreview( FName PropertyNa
 	}
 	else if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, HeightMask ) )
 	{
-		CharacterSpawned->SetHeightMask( HeightMask );
+		CharacterSpawned->SetHeightMaskGlobal( HeightMask );
 	}
 	else if( PropertyName == TEXT("X") || PropertyName == TEXT( "Y" ) || PropertyName == TEXT( "Z" ) || PropertyName == GET_MEMBER_NAME_CHECKED(UCharacterCreationUtility, SphereMaskRadius) )
 	{
-		CharacterSpawned->SetSphereMask( SphereMaskPosition , SphereMaskRadius );
+		CharacterSpawned->SetSphereMaskGlobal( SphereMaskPosition , SphereMaskRadius );
 	}
 	else if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, EyesBleeding ) )
 	{
@@ -160,9 +165,13 @@ void UCharacterCreationUtility::OnPropertyChangedEditorPreview( FName PropertyNa
 
 void UCharacterCreationUtility::OnPropertyChangedAnimation( FName PropertyName )
 {
-	if(!CharacterSpawned ) return;
+	if(!CharacterSpawned )
+	{
+		UE_LOG( LogCharacter, Error, TEXT( "ERROR : No character spawned !" ) );
+		return;
+	}
 
-	CharacterSpawned->SetEditorAnimationBP( AnimationBP );
+	CharacterSpawned->SetEditorAnimationBP_Editor( AnimationBP );
 
 	if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, AnimPlayRate ) || PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, AnimationPreview ) )
 	{
@@ -170,7 +179,7 @@ void UCharacterCreationUtility::OnPropertyChangedAnimation( FName PropertyName )
 		{
 			if( IsAnimSequenceCompatible() )
 			{	
-				CharacterSpawned->UpdateMainBodyAnimation( AnimationPreview, AnimPlayRate, ARKitName );
+				CharacterSpawned->UpdateMainBodyAnimation_Editor( AnimationPreview, AnimPlayRate, ARKitName );
 			}
 			else
 			{
@@ -179,19 +188,19 @@ void UCharacterCreationUtility::OnPropertyChangedAnimation( FName PropertyName )
 		}
 		else
 		{
-			CharacterSpawned->UpdateMainBodyAnimation( nullptr, AnimPlayRate, ARKitName );
+			CharacterSpawned->UpdateMainBodyAnimation_Editor( nullptr, AnimPlayRate, ARKitName );
 		}
 	}
 	else if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, AnimationBP ) )
 	{
-		if( USkeletalMeshComponent* MainBodyComponent = CharacterSpawned->GetMainBodyComponent() )
+		if( UModularSkeletalMeshComponent* MainBodyComponent = CharacterSpawned->GetMainBodyComponent() )
 		{
 			MainBodyComponent->SetAnimInstanceClass( AnimationBP );
 		}
 	}
 	else if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, ARKitName ) )
 	{
-		CharacterSpawned->UpdateMainBodyAnimation( AnimationPreview, AnimPlayRate, ARKitName );
+		CharacterSpawned->UpdateMainBodyAnimation_Editor( AnimationPreview, AnimPlayRate, ARKitName );
 	}
 }
 
@@ -228,10 +237,9 @@ void UCharacterCreationUtility::LoadButtonClicked()
 
 bool UCharacterCreationUtility::IsAnimSequenceCompatible()
 {
+	FModularMainBodyData& BodyMesh = CharacterProperties.MainBody;
 
-	FModularSkeletalMeshData& BodyMesh = CharacterProperties.MainBody;
-
-	if( BodyMesh.MeshData->Mesh )
+	if( BodyMesh.MeshData )
 	{
 		USkeletalMesh* SkeletalMesh = BodyMesh.MeshData->Mesh.LoadSynchronous();
 		if( SkeletalMesh )
@@ -248,7 +256,7 @@ bool UCharacterCreationUtility::IsAnimSequenceCompatible()
 
 void UCharacterCreationUtility::UpdateEyesArray()
 {
-	FModularSkeletalMeshData ModularSkeletalMeshData = CharacterProperties.GetHeadData();
+	FModularSkeletalMeshData ModularSkeletalMeshData = CharacterProperties.GetSkeletalMeshData(EBodyPartType::Head);
 
 	if( UHeadMeshData* HeadData = Cast<UHeadMeshData>( ModularSkeletalMeshData.MeshData ) )
 	{
@@ -273,12 +281,16 @@ void UCharacterCreationUtility::UpdateEyesArray()
 
 void UCharacterCreationUtility::UpdatePreviewData()
 {
-	CharacterSpawned->SetEffect( Effect );
+	if( !CharacterSpawned ) return;
+
+	CharacterSpawned->SetFaceEffect( (float)Effect/10.f );
 	CharacterSpawned->SetGlobalWetness( MainWetness );
 	CharacterSpawned->SetHeightWetness( HeightWetness, HeightWetnessOpacity );
 	CharacterSpawned->SetIsUnderRoof( UnderRoof );
-	CharacterSpawned->SetHeightMask( HeightMask );
-	CharacterSpawned->SetSphereMask( SphereMaskPosition, SphereMaskRadius );
+	CharacterSpawned->SetHeightMaskGlobal( HeightMask );
+	CharacterSpawned->SetSphereMaskGlobal( SphereMaskPosition, SphereMaskRadius );
+	CharacterSpawned->SetSphereMaskHardness( SphereMaskHardness );
+
 	for( uint8 I = 0; I < EyesBleeding.Num(); I++ )
 	{
 		TArray<int32> IndexArray;
@@ -305,6 +317,6 @@ void UCharacterCreationUtility::BlinkButtonClicked()
 {
 	if( CharacterSpawned )
 	{
-		CharacterSpawned->SetTestBlinkEditor( true );
+		CharacterSpawned->bTestBlink_Editor = true;
 	}
 }

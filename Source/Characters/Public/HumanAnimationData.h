@@ -123,10 +123,15 @@ struct CHARACTERS_API FHumanStateData
 {
 	GENERATED_USTRUCT_BODY()
 
+	FHumanStateData()
+	{
+		GlobalSphereMaskPosition = FVector4::Zero();
+	};
+
 	public:
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face", meta = ( ClampMin = 0, UIMin = 0 ) )
-	float Effect;
+	float FaceEffectIndex = 0.f;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes", meta = ( ClampMin = 0, ClampMax = 2, UIMin = 0, UIMax = 2 ) )
 	TArray<float> EyesEmissive;
@@ -143,29 +148,38 @@ struct CHARACTERS_API FHumanStateData
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Eyes" )
 	TArray<float> LastFrameEyeBlink;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float GlobalWetness;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Rain" )
 	bool bIsUnderRoof = false;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body", meta = ( ClampMin = 0, UIMin = 0 ) )
-	float WetnessZHeight;
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Wetness", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
+	float WetnessGlobalOpacity = 0.f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Wetness", meta = ( ClampMin = 0, UIMin = 0 ) )
+	float WetnessZHeight = 0.f;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float WetnessZOpacity;
+	float WetnessZOpacity = 0.f;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Mask", meta = ( ClampMin = 0, UIMin = 0 ) )
-	float MaskHeight;
+	float GlobalMaskHeight = 0.f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Mask", meta = ( ClampMin = 0, UIMin = 0 ) )
+	float GlobalSphereMaskHardness = 0.75f;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Mask" )
-	FVector SphereMaskPosition;
+	FVector4 GlobalSphereMaskPosition;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Mask", meta = ( ClampMin = 0, UIMin = 0 ) )
-	float SphereMaskRadius;
+	float GlobalSphereMaskRadius = 0.f;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body" )
-	bool bReverseMask = false;
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Mask" )
+	bool bReverseGlobalSphereMask = false;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Mask" )
+	bool bReverseGlobalHeightMask = false;
+
+	TMap<FName, float> GetHumanStateFloatTMap();
+	TMap<FName, FVector4> GetHumanStateVectorTMap();
 };
 
 /**

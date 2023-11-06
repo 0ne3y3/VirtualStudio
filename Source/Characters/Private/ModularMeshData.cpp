@@ -2,10 +2,11 @@
 
 
 #include "ModularMeshData.h"
+#include "CharacterSubsystem.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogCharacter, Log, All );
 
-float FEyeCustomData::GetCustomDataValue( int32 EyeIndex, int32 CustomDataIndex )
+float FEyeData::GetCustomDataValue( int32 EyeIndex, int32 CustomDataIndex )
 {
 	switch( CustomDataIndex )
 	{
@@ -45,140 +46,9 @@ float FEyeCustomData::GetCustomDataValue( int32 EyeIndex, int32 CustomDataIndex 
 		return ( ScleraShadowOffset.IsValidIndex( EyeIndex ) ) ? ScleraShadowOffset[EyeIndex].X : 0;
 		case 17:
 		return ( ScleraShadowOffset.IsValidIndex( EyeIndex ) ) ? ScleraShadowOffset[EyeIndex].Y : 0;
-		case 19:
-		return ( HighlightMaxRotation.IsValidIndex( EyeIndex ) ) ? HighlightMaxRotation[EyeIndex] : 0;
-		case 20:
-		return ( HighlightMaxScale.IsValidIndex( EyeIndex ) ) ? HighlightMaxScale[EyeIndex].X : 0;
-		case 21:
-		return ( HighlightMaxScale.IsValidIndex( EyeIndex ) ) ? HighlightMaxScale[EyeIndex].Y : 0;
 		default:
 		return 0;
 	}
-}
-
-float FSkinFaceCustomData::GetSkinCustomDataValue( int32 CustomDataIndex )
-{
-	switch( CustomDataIndex )
-	{
-		case 10:
-			return SkinAtlasCurve;
-		case 11:
-			return BaseSpecular;
-		case 12:
-			return BaseRoughness;
-		case 13:
-			return BaseMetallic;
-		case 14:
-			return BaseSubsurfaceOpacity;
-		case 15:
-			return SubsurfaceColor.R;
-		case 16:
-			return SubsurfaceColor.G;
-		case 17:
-			return SubsurfaceColor.B;
-		default:
-		return 0;
-	}
-}
-
-float FSkinFaceCustomData::GetBodyCustomDataValue( int32 CustomDataIndex )
-{
-	switch( CustomDataIndex )
-	{
-		case 18:
-		return HandLeftNailColorCurve;
-		case 19:
-		return HandRightNailColorCurve;
-		case 20:
-		return FootLeftNailColorCurve;
-		case 21:
-		return FootRightNailColorCurve;
-		default:
-		return 0;
-	}
-}
-
-float FSkinFaceCustomData::GetFaceCustomDataValue( int32 CustomDataIndex )
-{
-	switch( CustomDataIndex )
-	{
-		case 18:
-		return EyelashColorCurve;
-		case 19:
-		return EyebrowColorCurve;
-		case 20:
-		return InsideMouthCurve;
-		case 21:
-		return TongueCurve;
-		case 22:
-		return CheekColor.R;
-		case 23:
-		return CheekColor.G;
-		case 24:
-		return CheekColor.B;
-		case 25:
-		return LipsColor.R;
-		case 26:
-		return LipsColor.G;
-		case 27:
-		return LipsColor.B;
-		case 28:
-		return MascaraColorCurve;
-		case 29:
-		return Moles;
-		default:
-		return 0;
-	}
-}
-
-TArray<float> FSkinFaceCustomData::CombineSkinData()
-{
-	TArray<float> ValueArray;
-
-	for( uint32 DataIndex = StartingIndexSkin; DataIndex <= EndIndexSkin; DataIndex++ )
-	{
-		ValueArray.Add( GetSkinCustomDataValue( DataIndex ) );
-	}
-
-	return ValueArray;
-}
-
-TArray<float> FSkinFaceCustomData::CombineBodyData()
-{
-	TArray<float> ValueArray;
-
-	for( uint32 DataIndex = StartingIndexSkin; DataIndex <= EndingIndexBody; DataIndex++ )
-	{
-		if( DataIndex <= EndIndexSkin )
-		{
-			ValueArray.Add( GetSkinCustomDataValue( DataIndex ) );
-		}
-		else
-		{
-			ValueArray.Add( GetBodyCustomDataValue( DataIndex ) );
-		}
-	}
-
-	return ValueArray;
-}
-
-TArray<float> FSkinFaceCustomData::CombineFaceData()
-{
-	TArray<float> ValueArray;
-
-	for( uint32 DataIndex = StartingIndexSkin; DataIndex <= EndingIndexFace; DataIndex++ )
-	{
-		if( DataIndex <= EndIndexSkin )
-		{
-			ValueArray.Add( GetSkinCustomDataValue( DataIndex ) );
-		}
-		else
-		{
-			ValueArray.Add( GetFaceCustomDataValue( DataIndex ) );
-		}
-	}
-
-	return ValueArray;
 }
 
 bool FHumanBodyData::IsCustomData() const
@@ -186,74 +56,285 @@ bool FHumanBodyData::IsCustomData() const
 	return PresetName == "Custom";
 }
 
-FModularSkeletalMeshData FHumanBodyData::GetHeadData()
+void FHumanBodyData::RemoveOneSkeletalMeshPart( EBodyPartType BodyPartToRemove )
+{
+	for( int32 Index = 0; Index < SkeletalMeshes.Num(); Index++ )
+	{
+		if( SkeletalMeshes[Index].MeshData->MeshType == BodyPartToRemove )
+		{
+			SkeletalMeshes.RemoveAt(Index);
+		}
+	}
+}
+
+FModularSkeletalMeshData& FHumanBodyData::GetSkeletalMeshData( EBodyPartType InBodyPartType )
 {
 	for( FModularSkeletalMeshData& SkeletalMeshData : SkeletalMeshes )
 	{
-		if( Cast<UHeadMeshData>( SkeletalMeshData.MeshData )) return SkeletalMeshData;
+		if( SkeletalMeshData.MeshData && SkeletalMeshData.MeshData->MeshType == InBodyPartType ) return SkeletalMeshData;
 	}
 
-	return FModularSkeletalMeshData();
+	UCharacterSubsystem* CharacterSubsystem = GEngine->GetEngineSubsystem<UCharacterSubsystem>();
+	return CharacterSubsystem->GetDefaultModularSkeletalMeshData();
 }
 
-FClothCustomData::FClothCustomData()
+TMap<FName, float> FSkinFaceData::GetSkinFloatTMap()
 {
-	// https://benui.ca/unreal/uproperty/#editfixedsize
-	ClothColorCurve = {0, 0, 1, 1};
-	ClothBaseMetallic = { 0.f, 0.f, 0.f, 0.f };
-	ClothBaseRoughness = { 0.f, 0.f, 0.f, 0.f };
-	ClothBaseSpecular = { 0.f, 0.f, 0.f, 0.f };
+	TMap<FName, float> FloatMap;
+
+	FloatMap.Add( TTuple<FName, float>( TEXT( "SkinColorCurve" ), (float)SkinColorCurve ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "SkinBaseMetallic" ), SkinBaseMetallic )  );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "SkinBaseRoughness" ), SkinBaseRoughness ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "SkinBaseSpecular" ), SkinBaseSpecular ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "SkinSubsurfaceOpacity" ), SkinSubsurfaceOpacity ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "NailsRoughness" ), NailsRoughness ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "NailsSpecular" ), NailsSpecular ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "FaceMascaraColorCurve" ), (float)FaceMascaraColorCurve));
+	FloatMap.Add( TTuple<FName, float>( TEXT( "FaceEyelashColorCurve" ), (float)FaceEyelashColorCurve ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "FaceEyebrowColorCurve" ), (float)FaceEyebrowColorCurve ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "FaceEyebrowAndEyelashRoughness" ), FaceEyebrowAndEyelashRoughness ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "FaceInsideMouthAndTongueRoughness" ), FaceInsideMouthAndTongueRoughness ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "FaceEyebrowAndEyelashSpecular" ), FaceEyebrowAndEyelashSpecular ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "FaceInsideMouthAndTongueSpecular" ), FaceInsideMouthAndTongueSpecular ) );
+
+	return FloatMap;
 }
 
-float FClothCustomData::GetFloatCustomDataValue( int32 CustomDataIndex )
+TMap<FName, FVector4> FSkinFaceData::GetSkinVectorTMap()
 {
-	switch( CustomDataIndex )
+	TMap<FName, FVector4> FVector4Map;
+
+	FVector4Map.Add(TTuple<FName, FVector4>(TEXT("SkinSubsurfaceColorTint"), SkinSubsurfaceColorTint) );
+	FVector4Map.Add(TTuple<FName, FVector4>(TEXT("NailsColorHandLeft"), NailsColorHandLeft) );
+	FVector4Map.Add(TTuple<FName, FVector4>(TEXT("NailsColorHandRight"), NailsColorHandRight) );
+	FVector4Map.Add(TTuple<FName, FVector4>(TEXT("NailsColorFootLeft"), NailsColorFootLeft) );
+	FVector4Map.Add(TTuple<FName, FVector4>(TEXT("NailsColorFootRight"), NailsColorFootRight) );
+	FVector4Map.Add(TTuple<FName, FVector4>(TEXT("FaceCheekColor"), FaceCheekColor) );
+	FVector4Map.Add(TTuple<FName, FVector4>(TEXT("FaceLipsColor"), FaceLipsColor) );
+	FVector4Map.Add(TTuple<FName, FVector4>(TEXT("FaceTongueColor"), FaceTongueColor) );
+	FVector4Map.Add(TTuple<FName, FVector4>(TEXT("FaceInsideMouthColor"), FaceInsideMouthColor) );
+	FVector4Map.Add(TTuple<FName, FVector4>(TEXT("FaceTeethColor"), FaceTeethColor) );
+	FVector4Map.Add(TTuple<FName, FVector4>(TEXT("FaceEffectYandereColor"), FaceEffectYandereColor) );
+	FVector4Map.Add(TTuple<FName, FVector4>(TEXT("FaceEffectMadColor"), FaceEffectMadColor) );
+
+	return FVector4Map;
+}
+
+TMap<FName, float> FHumanBodyMorphology::GetBodyMorphologyTMap()
+{
+	TMap<FName, float> FloatMap;
+
+	FloatMap.Add( TTuple<FName, float>( TEXT( "MorphBodyFat" ), BodyFat ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "MorphBodyMuscle" ), BodyMuscle ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "MorphBoobsSize" ), Boobs ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "MorphArmsMuscle" ), ArmsMuscles ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "MorphLegsFat" ), LegsFat ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "MorphLegsMuscle" ), LegsMuscle ) );
+
+	return FloatMap;
+}
+
+TMap<FName, float> USkeletalMeshData::GetRainFloatTMap()
+{
+	TMap<FName, float> FloatMap;
+
+	FloatMap.Add( TTuple<FName, float>( TEXT( "RainDropsSize" ), RainDropsSize ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "RainDropsTopMask" ), RainDropsTopMask ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "RainDropsSpeed" ), RainDropsSpeed ) );
+
+	return FloatMap;
+}
+
+TMap<FName, float> FHairData::GetHairTMap()
+{
+	TMap<FName, float> FloatMap;
+
+	FloatMap.Add( TTuple<FName, float>( TEXT( "PrimaryColorCurve1" ), (float)PrimaryColorCurve1) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "PrimaryColorCurve2" ), (float)PrimaryColorCurve2) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "PrimaryColorCurve3" ), (float)PrimaryColorCurve3) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "PrimaryBackColorCurve1" ), (float)PrimaryBackColorCurve1) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "PrimaryBackColorCurve2" ), (float)PrimaryBackColorCurve2) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "PrimaryBackColorCurve3" ), (float)PrimaryBackColorCurve3) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "AnisotropicColorCurve1" ), (float)AnisotropicColorCurve1) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "AnisotropicColorCurve2" ), (float)AnisotropicColorCurve2) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "AnisotropicColorCurve3" ), (float)AnisotropicColorCurve3) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "AnisotropicBackColorCurve1" ), (float)AnisotropicBackColorCurve1) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "AnisotropicBackColorCurve2" ), (float)AnisotropicBackColorCurve2) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "AnisotropicBackColorCurve3" ), (float)AnisotropicBackColorCurve3) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "SubsurfacePrimaryColorBoost" ), SubsurfacePrimaryColorBoost) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "SubsurfaceAnisotropicColorBoost" ), SubsurfaceAnisotropicColorBoost) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "BaseMetallic" ), BaseMetallic) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "RoughnessMax" ), RoughnessMax) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "SpecularMin" ), SpecularMin) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "MinSubsurfaceOpacity" ), MinSubsurfaceOpacity) );
+
+	return FloatMap;
+}
+
+TMap<FName, float> UHairMeshData::GetHairMeshFloatTMap()
+{
+	TMap<FName, float> FloatMap;
+
+	FloatMap.Add( TTuple<FName, float>( TEXT( "AnisotropicStrength" ), AnisotropicStrength) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "AnisotropicHFRange" ), AnisotropicHFRange) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "AnisotropicHFOffset" ), AnisotropicHFOffset) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "AnisotropicLFRange" ), AnisotropicLFRange) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "AnisotropicLFOffset" ), AnisotropicLFOffset) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "AnisotropicBreakTextureScaleX" ), AnisotropicBreakTextureScaleX) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "AnisotropicBreakTextureScaleY" ), AnisotropicBreakTextureScaleY) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "AnisotropicBreakTextureContrast" ), AnisotropicBreakTextureContrast) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "AnisotropicHFCurve" ), (float)AnisotropicHFCurve) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "AnisotropicLFCurve" ), (float)AnisotropicLFCurve) );
+
+	return FloatMap;
+}
+
+TMap<FName, FVector4> UHairMeshData::GetHairMeshVector4TMap()
+{
+	TMap<FName, FVector4> FVectorMap;
+
+	FVectorMap.Add( TTuple<FName, FVector4>( TEXT( "RainVariationTextureScaleX" ), RainVariationTextureScaleX ) );
+	FVectorMap.Add( TTuple<FName, FVector4>( TEXT( "RainVariationTextureScaleY" ), RainVariationTextureScaleY ) );
+	FVectorMap.Add( TTuple<FName, FVector4>( TEXT( "AnisotropicTextureScale" ), AnisotropicTextureScale ) );
+
+	return FVectorMap;
+}
+
+TMap<FName, float> FClothData::GetClothFloatTMap()
+{
+	TMap<FName, float> FloatMap;
+
+	FloatMap.Add( TTuple<FName, float>( TEXT( "ClothDetailTexture1Opacity" ), ClothDetailTexture1Opacity ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "ClothDetailTexture1Scale" ), ClothDetailTexture1Scale ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "ClothColor1" ), (float)ClothColor1 ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "ClothDetailTexture2Opacity" ), ClothDetailTexture2Opacity ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "ClothDetailTexture2Scale" ), ClothDetailTexture2Scale ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "ClothColor2" ), (float)ClothColor2 ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "ClothDetailTexture3Opacity" ), ClothDetailTexture3Opacity ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "ClothDetailTexture3Scale" ), ClothDetailTexture3Scale ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "ClothColor3" ), (float)ClothColor3 ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "ClothDetailTexture4Opacity" ), ClothDetailTexture4Opacity ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "ClothDetailTexture4Scale" ), ClothDetailTexture4Scale ) );
+	FloatMap.Add( TTuple<FName, float>( TEXT( "ClothColor4" ), (float)ClothColor4 ) );
+
+	return FloatMap;
+}
+
+TMap<FName, FVector4> FClothData::GetClothVector4TMap()
+{
+	TMap<FName, FVector4> FVectorMap;
+
+	FVectorMap.Add( TTuple<FName, FVector4>( TEXT( "ClothMaterialBaseProperties1" ), ClothMaterialBaseProperties1 ) );
+	FVectorMap.Add( TTuple<FName, FVector4>( TEXT( "ClothMaterialBaseProperties2" ), ClothMaterialBaseProperties2 ) );
+	FVectorMap.Add( TTuple<FName, FVector4>( TEXT( "ClothMaterialBaseProperties3" ), ClothMaterialBaseProperties3 ) );
+	FVectorMap.Add( TTuple<FName, FVector4>( TEXT( "ClothMaterialBaseProperties4" ), ClothMaterialBaseProperties4 ) );
+
+	return FVectorMap;
+}
+
+void FModularSkeletalMeshData::CopyPropertiesFromParent( FModularSkeletalMeshData& ParentData, bool bIsParentSetup )
+{
+	UClothMeshData* ClothMeshData = Cast<UClothMeshData>( ParentData.MeshData );
+
+	if( !ClothMeshData || !MeshData) return;
+
+	EBodyPartType MeshType = MeshData->MeshType;
+	FChildBodyPart* ChildMeshData = ClothMeshData->ChildBodyParts.FindByPredicate([MeshType](const FChildBodyPart& ChildBody){ return ChildBody.MeshType == MeshType; });
+	if( ChildMeshData )
 	{
-		case 10:
-		return ( ClothColorCurve.IsValidIndex( 0 ) ) ? ClothColorCurve[0] : 0;
-		case 11:
-		return ( ClothBaseSpecular.IsValidIndex( 0 ) ) ? ClothBaseSpecular[0] : 0;
-		case 12:
-		return ( ClothBaseRoughness.IsValidIndex( 0 ) ) ? ClothBaseRoughness[0] : 0;
-		case 13:
-		return ( ClothBaseMetallic.IsValidIndex( 0 ) ) ? ClothBaseMetallic[0] : 0;
-		case 18:
-		return ( ClothColorCurve.IsValidIndex( 1 ) ) ? ClothColorCurve[1] : 0;
-		case 19:
-		return ( ClothColorCurve.IsValidIndex( 2 ) ) ? ClothColorCurve[2] : 0;
-		case 20:
-		return ( ClothColorCurve.IsValidIndex( 3 ) ) ? ClothColorCurve[3] : 0;
-		case 21:
-		return ( ClothBaseSpecular.IsValidIndex( 1 ) ) ? ClothBaseSpecular[1] : 0;
-		case 22:
-		return ( ClothBaseRoughness.IsValidIndex( 1 ) ) ? ClothBaseRoughness[1] : 0;
-		case 23:
-		return ( ClothBaseMetallic.IsValidIndex( 1 ) ) ? ClothBaseMetallic[1] : 0;
-		case 24:
-		return ( ClothBaseSpecular.IsValidIndex( 2 ) ) ? ClothBaseSpecular[2] : 0;
-		case 25:
-		return ( ClothBaseRoughness.IsValidIndex( 2 ) ) ? ClothBaseRoughness[2] : 0;
-		case 26:
-		return ( ClothBaseMetallic.IsValidIndex( 2 ) ) ? ClothBaseMetallic[2] : 0;
-		case 27:
-		return ( ClothBaseSpecular.IsValidIndex( 3 ) ) ? ClothBaseSpecular[3] : 0;
-		case 28:
-		return ( ClothBaseRoughness.IsValidIndex( 3 ) ) ? ClothBaseRoughness[3] : 0;
-		case 29:
-		return ( ClothBaseMetallic.IsValidIndex( 3 ) ) ? ClothBaseMetallic[3] : 0;
+		switch( ChildMeshData->ClothPropertiesIndex )
+		{
+			case 1:
+			if( bIsParentSetup )
+			{
+				CurrentClothData.ClothDetailTexture1Opacity = ParentData.CurrentClothData.ClothDetailTexture1Opacity;
+				CurrentClothData.ClothDetailTexture1Scale = ParentData.CurrentClothData.ClothDetailTexture1Scale;
+				CurrentClothData.ClothMaterialBaseProperties1 = ParentData.CurrentClothData.ClothMaterialBaseProperties1;
+				CurrentClothData.ClothColor1 = ParentData.CurrentClothData.ClothColor1;
+			}
+			else
+			{
+				CurrentClothData.ClothDetailTexture1Opacity = ClothMeshData->DefaultClothData.ClothDetailTexture1Opacity;
+				CurrentClothData.ClothDetailTexture1Scale = ClothMeshData->DefaultClothData.ClothDetailTexture1Scale;
+				CurrentClothData.ClothMaterialBaseProperties1 = ClothMeshData->DefaultClothData.ClothMaterialBaseProperties1;
+				CurrentClothData.ClothColor1 = ClothMeshData->DefaultClothData.ClothColor1;
+			}
+			break;
+			case 2:
+			if( bIsParentSetup )
+			{
+				CurrentClothData.ClothDetailTexture2Opacity = ParentData.CurrentClothData.ClothDetailTexture2Opacity;
+				CurrentClothData.ClothDetailTexture2Scale = ParentData.CurrentClothData.ClothDetailTexture2Scale;
+				CurrentClothData.ClothMaterialBaseProperties2 = ParentData.CurrentClothData.ClothMaterialBaseProperties2;
+				CurrentClothData.ClothColor2 = ParentData.CurrentClothData.ClothColor2;
+			}
+			else
+			{
+				CurrentClothData.ClothDetailTexture2Opacity = ClothMeshData->DefaultClothData.ClothDetailTexture2Opacity;
+				CurrentClothData.ClothDetailTexture2Scale = ClothMeshData->DefaultClothData.ClothDetailTexture2Scale;
+				CurrentClothData.ClothMaterialBaseProperties2 = ClothMeshData->DefaultClothData.ClothMaterialBaseProperties2;
+				CurrentClothData.ClothColor2 = ClothMeshData->DefaultClothData.ClothColor2;
+			}
+			break;
+			case 3:
+			if( bIsParentSetup )
+			{
+				CurrentClothData.ClothDetailTexture3Opacity = ParentData.CurrentClothData.ClothDetailTexture3Opacity;
+				CurrentClothData.ClothDetailTexture3Scale = ParentData.CurrentClothData.ClothDetailTexture3Scale;
+				CurrentClothData.ClothMaterialBaseProperties3 = ParentData.CurrentClothData.ClothMaterialBaseProperties3;
+				CurrentClothData.ClothColor3 = ParentData.CurrentClothData.ClothColor3;
+			}
+			else
+			{
+				CurrentClothData.ClothDetailTexture3Opacity = ClothMeshData->DefaultClothData.ClothDetailTexture3Opacity;
+				CurrentClothData.ClothDetailTexture3Scale = ClothMeshData->DefaultClothData.ClothDetailTexture3Scale;
+				CurrentClothData.ClothMaterialBaseProperties3 = ClothMeshData->DefaultClothData.ClothMaterialBaseProperties3;
+				CurrentClothData.ClothColor3 = ClothMeshData->DefaultClothData.ClothColor3;
+			}
+			break;
+			case 4:
+			if( bIsParentSetup )
+			{
+				CurrentClothData.ClothDetailTexture4Opacity = ParentData.CurrentClothData.ClothDetailTexture4Opacity;
+				CurrentClothData.ClothDetailTexture4Scale = ParentData.CurrentClothData.ClothDetailTexture4Scale;
+				CurrentClothData.ClothMaterialBaseProperties4 = ParentData.CurrentClothData.ClothMaterialBaseProperties4;
+				CurrentClothData.ClothColor4 = ParentData.CurrentClothData.ClothColor4;
+			}
+			else
+			{
+				CurrentClothData.ClothDetailTexture4Opacity = ClothMeshData->DefaultClothData.ClothDetailTexture4Opacity;
+				CurrentClothData.ClothDetailTexture4Scale = ClothMeshData->DefaultClothData.ClothDetailTexture4Scale;
+				CurrentClothData.ClothMaterialBaseProperties4 = ClothMeshData->DefaultClothData.ClothMaterialBaseProperties4;
+				CurrentClothData.ClothColor4 = ClothMeshData->DefaultClothData.ClothColor4;
+			}
+			break;
+			default:
+			return;
+		}
+	}
+}
+
+EBodyPartType FHumanBodyData::GetNextBodyPartToLoad( EBodyPartType CurrentBodyPart )
+{
+	switch( CurrentBodyPart )
+	{
+		case EBodyPartType::MainBody:
+		return EBodyPartType::Head;
+		case EBodyPartType::Head:
+		return EBodyPartType::Hair;
+		case EBodyPartType::Hair:
+		return EBodyPartType::Torso;
+		case EBodyPartType::Torso:
+		return EBodyPartType::Arms;
+		case EBodyPartType::Arms:
+		return EBodyPartType::Hands;
+		case EBodyPartType::Hands:
+		return EBodyPartType::Legs;
+		case EBodyPartType::Legs:
+		return EBodyPartType::Feet;
+		case EBodyPartType::Feet:
+		return EBodyPartType::BodyMAX;
 		default:
-		return 0;
+		return EBodyPartType::BodyMAX;
 	}
-}
-
-TArray<float> FClothCustomData::CombineClothValues( int32 EndIndexSkin )
-{
-	TArray<float> ValueArray;
-
-	for( uint32 DataIndex = EndIndexSkin+1; DataIndex <= EndingIndexCloth; DataIndex++ )
-	{
-		ValueArray.Add( GetFloatCustomDataValue( DataIndex ) );
-	}
-
-	return ValueArray;
 }

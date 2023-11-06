@@ -22,8 +22,6 @@ class CHARACTERS_API ALiveLinkHuman : public AHuman
 	public:
 	FORCEINLINE void SetHeadAnimationData( UARKitPresetData* InFaceARKitData ) override { FaceARKitData = InFaceARKitData; };
 
-	FORCEINLINE UARKitPresetData* GetHeadAnimationData() const override { return FaceARKitData; };
-
 	// Called every frame
 	virtual void Tick( float DeltaTime ) override;
 
@@ -44,7 +42,7 @@ class CHARACTERS_API ALiveLinkHuman : public AHuman
 	class ILiveLinkClient* CachedLiveLinkClient;
 
 	#if WITH_EDITORONLY_DATA
-		public:
-		FORCEINLINE virtual void SetArkitName_Editor( FName InName ) override { FaceARKitSubjectName = InName ;};
+	public:
+	FORCEINLINE virtual void SetArkitName_Editor( FName InName ) override { FaceARKitSubjectName = InName ;};
 	#endif
 };

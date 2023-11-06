@@ -5,122 +5,73 @@
 
 DEFINE_LOG_CATEGORY_STATIC( LogCharacter, Log, All );
 
-// Sets default values for this component's properties
-UModularSkeletalMeshComponent::UModularSkeletalMeshComponent()
+UModularSkeletalMeshComponent::UModularSkeletalMeshComponent( const FObjectInitializer& ObjectInitializer ) : Super( ObjectInitializer )
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = false;
-
-	// ...
+	SetComponentTickEnabled(false);
 }
 
-
-// Called when the game starts
-void UModularSkeletalMeshComponent::BeginPlay()
+void UModularSkeletalMeshComponent::SetTextureParameterOnDynamicMaterials( FName MaterialName, UTexture2D* Texture2D )
 {
-	Super::BeginPlay();
-
-	// ...
-	
-}
-
-
-// Called every frame
-void UModularSkeletalMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	// ...
-}
-
-USkeletalMeshComponent* UModularSkeletalMeshComponent::InitializeSkeletalMeshComponent( AActor* Outer, FName BodyPartName )
-{
-	if( !Outer ) return nullptr;
-
-	// Append "_skeletal" at the end of the component name
-	BodyName = FName(FString::Printf(TEXT("%s_Skeletal"), *BodyPartName.ToString()));
-
-	// try to create a new component
-	BodyPartComponent = NewObject<USkeletalMeshComponent>( Outer, USkeletalMeshComponent::StaticClass(), BodyName );
-
-	if( BodyPartComponent != nullptr )
+	for( auto DynMaterial : DynamicMaterialInstances )
 	{
-		// If Succeed, configure its default behavior.
-		BodyName = BodyPartName;
-		BodyPartComponent->bUseAttachParentBound = true;
-		BodyPartComponent->bUseBoundsFromLeaderPoseComponent = true;
-		Outer->RemoveOwnedComponent( BodyPartComponent );
-		BodyPartComponent->CreationMethod = EComponentCreationMethod::Instance;
-		Outer->AddOwnedComponent( BodyPartComponent );
-		BodyPartComponent->RegisterComponent();
-
-		TArray<USceneComponent*> ChildrenComponents;
-		USceneComponent* OuterMainBody = nullptr;
-		Outer->GetRootComponent()->GetChildrenComponents(false, ChildrenComponents);
-		for( USceneComponent* ChildComponent : ChildrenComponents )
-		{
-			if(ChildComponent->GetFName() == TEXT( "MainBodyMesh" ) ) OuterMainBody = ChildComponent;
-		}
-
-		BodyPartComponent->AttachToComponent( OuterMainBody, FAttachmentTransformRules::SnapToTargetIncludingScale );
-		RefreshLeaderComponent( Cast<USkeletalMeshComponent>( OuterMainBody ) );
-
-		return BodyPartComponent;
+		if( DynMaterial ) DynMaterial->SetTextureParameterValue( MaterialName , Texture2D );
 	}
-
-	UE_LOG( LogCharacter, Error, TEXT( "Failed to create USkeletalMeshComponent for %s." ), *BodyName.ToString() );
-	return nullptr;
 }
 
-USkeletalMeshComponent* UModularSkeletalMeshComponent::GetBodyPartComponent()
+void UModularSkeletalMeshComponent::SetModularSkeletalMesh(USkeletalMesh* InSkeletalMesh)
 {
-	return BodyPartComponent;
+	SetSkeletalMesh( InSkeletalMesh );
+	UpdateDynamicMaterialInstance( InSkeletalMesh->GetNumMaterials() );
 }
 
-FName UModularSkeletalMeshComponent::GetBodyName()
+void UModularSkeletalMeshComponent::UpdateDynamicMaterialInstance( int32 NumbersOfEntries )
 {
-	return BodyName;
-}
-
-bool UModularSkeletalMeshComponent::SetSkeletalMesh( USkeletalMesh* Mesh )
-{
-	if( Mesh )
+	if( NumbersOfEntries != DynamicMaterialInstances.Num() )
 	{
-		BodyPartComponent->SetSkeletalMesh( Mesh );
-		return true;
+		DynamicMaterialInstances.Empty();
+		DynamicMaterialInstances.Init(nullptr, NumbersOfEntries);
 	}
-	return false;
-}
-
-bool UModularSkeletalMeshComponent::SetSkeletalMeshMaterials( TArray<UMaterialInstance*>& Materials )
-{
-	bool DoesOneMaterialFailed = false;
-	for( int32 MaterialIndex = 0; MaterialIndex < Materials.Num(); MaterialIndex++ )
+	else
 	{
-		if( Materials[MaterialIndex] != nullptr )
-		{
-			BodyPartComponent->SetMaterial(MaterialIndex, Materials[MaterialIndex] );
-		}
-		else
-		{
-			DoesOneMaterialFailed = true;
-		}
+		DynamicMaterialInstances.Reset();
 	}
-
-	return !DoesOneMaterialFailed;
 }
 
-void UModularSkeletalMeshComponent::OnComponentDestroyed( bool bDestroyingHierarchy )
+void UModularSkeletalMeshComponent::SetIsFullySetup( bool inIsFullSetup )
 {
-	if( BodyPartComponent ) BodyPartComponent->DestroyComponent();
-	Super::OnComponentDestroyed( bDestroyingHierarchy );
+	bIsFullySetup = inIsFullSetup;
 }
 
-void UModularSkeletalMeshComponent::RefreshLeaderComponent( USkeletalMeshComponent* MainBodyComponent )
+bool UModularSkeletalMeshComponent::IsAllSetup()
 {
-	if( BodyPartComponent )
+	return bIsFullySetup;
+}
+
+TArray<UMaterialInstanceDynamic*>& UModularSkeletalMeshComponent::GetAllDynamicMaterialInstances()
+{
+	return DynamicMaterialInstances;
+}
+
+UMaterialInstanceDynamic* UModularSkeletalMeshComponent::GetDynamicMaterialInstance( int32 MatIndex )
+{
+	return ( DynamicMaterialInstances.IsValidIndex(MatIndex) ) ? DynamicMaterialInstances[MatIndex] : nullptr;
+}
+
+void UModularSkeletalMeshComponent::SetDynamicMaterialInstance( int32 MatIndex, UMaterialInstanceDynamic* InDynamicMaterialInstance )
+{
+	if( DynamicMaterialInstances.IsValidIndex( MatIndex ) )
 	{
-		if( !BodyPartComponent->HasValidAnimationInstance() ) BodyPartComponent->SetLeaderPoseComponent( MainBodyComponent );
+		DynamicMaterialInstances[MatIndex] = InDynamicMaterialInstance;
+		SetMaterial(MatIndex, InDynamicMaterialInstance);
+	}
+}
+
+void UModularSkeletalMeshComponent::SetDynamicMaterialInstanceByName( FName SlotName, UMaterialInstanceDynamic* InDynamicMaterialInstance )
+{
+	int32 SlotIndex = GetMaterialIndex( SlotName );
+	if( DynamicMaterialInstances.IsValidIndex( SlotIndex ) )
+	{
+		DynamicMaterialInstances[SlotIndex] = InDynamicMaterialInstance;
+		SetMaterial( SlotIndex, InDynamicMaterialInstance );
 	}
 }

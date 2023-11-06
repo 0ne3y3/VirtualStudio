@@ -44,7 +44,6 @@ class CHARACTERSEDITOR_API UCharacterCreationUtility : public UEditorUtilityWidg
 	UFUNCTION( BlueprintCallable )
 	void UpdateCharacter();
 
-	UFUNCTION( BlueprintCallable )
 	void UpdateEyesArray();
 
 	UFUNCTION( BlueprintCallable )
@@ -76,6 +75,9 @@ class CHARACTERSEDITOR_API UCharacterCreationUtility : public UEditorUtilityWidg
 	TObjectPtr<UButton> LoadButton;
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, meta = ( BindWidget ) )
+	TObjectPtr<UButton> RefreshButton;
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, meta = ( BindWidget ) )
 	TObjectPtr<UButton> BlinkButton;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
@@ -97,7 +99,7 @@ class CHARACTERSEDITOR_API UCharacterCreationUtility : public UEditorUtilityWidg
 	FName ARKitName;
 
 	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Effect", meta = ( DisplayName = "Face effect", ClampMin = 0, UIMin = 0 ) )
-	float Effect = 0.f;
+	int32 Effect = 0;
 
 	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Effect", meta = ( DisplayName = "Eyes bleeding", ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
 	TArray<float> EyesBleeding;
@@ -111,7 +113,7 @@ class CHARACTERSEDITOR_API UCharacterCreationUtility : public UEditorUtilityWidg
 	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Wetness", meta = ( DisplayName = "Global wetness", ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
 	float MainWetness = 0.f;
 
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Wetness", meta = ( DisplayName = "Height wetness (in UE unit)", ClampMin = 0, UIMin = 0 ) )
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Wetness", meta = ( DisplayName = "Height wetness", ClampMin = 0, UIMin = 0 ) )
 	float HeightWetness = 0.0f;
 
 	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Wetness", meta = ( DisplayName = "Height wetness opacity", ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
@@ -120,14 +122,18 @@ class CHARACTERSEDITOR_API UCharacterCreationUtility : public UEditorUtilityWidg
 	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Wetness", meta = ( DisplayName = "Is under roof" ) )
 	bool UnderRoof = false;
 
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Mask", meta = ( DisplayName = "Height mask (in UE unit)" ) )
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Mask", meta = ( DisplayName = "Height mask global" ) )
 	float HeightMask = 0.f;
 
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Mask", meta = ( DisplayName = "Sphere mask position" ) )
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Mask", meta = ( DisplayName = "Sphere mask position global" ) )
 	FVector SphereMaskPosition;
 
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Mask", meta = ( DisplayName = "Sphere mask radius" ) )
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Mask", meta = ( DisplayName = "Sphere mask radius global" ) )
 	float SphereMaskRadius = 0.f;
 
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Preview|Mask", meta = ( DisplayName = "Sphere mask radius global" ) )
+	float SphereMaskHardness = 0.75f;
+
+	UPROPERTY()
 	TObjectPtr<AHuman> CharacterSpawned = nullptr;
 };
