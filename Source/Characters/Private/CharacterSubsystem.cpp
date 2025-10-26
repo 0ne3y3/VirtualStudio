@@ -1,18 +1,28 @@
 // Copyright 0ne3y3 Lucas. All Rights Reserved.
 
 #include "CharacterSubsystem.h"
+#include "CharacterSettings.h"
 
-FModularSkeletalMeshData& UCharacterSubsystem::GetDefaultModularSkeletalMeshData()
+void UCharacterSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
-	return ModularSkeletalMeshData;
+	Super::Initialize(Collection);
+
+	const UCharacterSettings* CharacterSettings = GetDefault<UCharacterSettings>();
+
+	if(!CharacterSettings) return;
+
+	MutableCharacterTable = CharacterSettings->MutableCharacterTable.LoadSynchronous();
+	MutableSkinColorTable = CharacterSettings->MutableSkinColorTable.LoadSynchronous();
+	MutableSkinMaterialTable = CharacterSettings->MutableSkinMaterialTable.LoadSynchronous();
+	MutableBodyMeshTable = CharacterSettings->MutableBodyMeshTable.LoadSynchronous();
+	MutableHeadMeshTable = CharacterSettings->MutableHeadMeshTable.LoadSynchronous();
+	MutableIrisTextureTable = CharacterSettings->MutableIrisTextureTable.LoadSynchronous();
+	MutableHighlightTextureTable = CharacterSettings->MutableHighlightTextureTable.LoadSynchronous();
+	MutableCETextureTable = CharacterSettings->MutableCETextureTable.LoadSynchronous();
 }
 
-FModularMainBodyData& UCharacterSubsystem::GetDefaultModularMainBodyData()
+void UCharacterSubsystem::Deinitialize()
 {
-	return ModularMainBodyData;
-}
+	Super::Deinitialize();
 
-FModularStaticMeshData& UCharacterSubsystem::GetDefaultModularStaticMeshData()
-{
-	return ModularStaticMeshData;
 }

@@ -14,7 +14,7 @@ public class CharactersEditor : ModuleRules
 			}
 		);
 
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EditorFramework", "VirtualStudio", "Characters", "UMGEditor", "EditorScriptingUtilities", "LiveLinkInterface" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EditorFramework", "VirtualStudio", "Characters", "UMGEditor", "EditorScriptingUtilities", "LiveLinkInterface", "ScriptableEditorWidgets", "BlueprintGraph", "AnimGraph" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "UnrealEd", "UMG", "Blutility" });
         // "Slate", "SlateCore"

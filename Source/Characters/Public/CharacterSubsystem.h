@@ -4,8 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/EngineSubsystem.h"
-#include "ModularMeshData.h"
 #include "CharacterSubsystem.generated.h"
+
+class UDataTable;
 
 /**
  * UCharacterSubsystem
@@ -18,19 +19,35 @@ class CHARACTERS_API UCharacterSubsystem : public UEngineSubsystem
 
 	public:
 
-	// Get a reference to the base FModularSkeletalMeshData
-	FModularSkeletalMeshData& GetDefaultModularSkeletalMeshData();
+	// Begin USubsystem
+	
+	// Initialize the subsystem, to setup default project values
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
-	// Get a reference to the base FModularMainBodyData
-	FModularMainBodyData& GetDefaultModularMainBodyData();
+	virtual void Deinitialize() override;
+	// End USubsystem
 
-	// Get a reference to the base FModularStaticMeshData
-	FModularStaticMeshData& GetDefaultModularStaticMeshData();
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UDataTable> MutableCharacterTable;
 
-	protected:
-	FModularSkeletalMeshData ModularSkeletalMeshData;
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UDataTable> MutableSkinColorTable;
 
-	FModularMainBodyData ModularMainBodyData;
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UDataTable> MutableSkinMaterialTable;
 
-	FModularStaticMeshData ModularStaticMeshData;
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UDataTable> MutableBodyMeshTable;
+
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UDataTable> MutableHeadMeshTable;
+
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UDataTable> MutableIrisTextureTable;
+
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UDataTable> MutableHighlightTextureTable;
+
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UDataTable> MutableCETextureTable;
 };

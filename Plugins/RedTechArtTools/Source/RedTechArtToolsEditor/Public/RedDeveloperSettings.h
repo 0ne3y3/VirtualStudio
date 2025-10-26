@@ -24,12 +24,13 @@
 
 #include "CoreMinimal.h"
 #include "DeveloperSettingsClasses.h"
+#include "Engine/DeveloperSettings.h"
 #include "RedDeveloperSettings.generated.h"
 
 /**
  * Developer settings for the RED Tech Art Tools Plugin.
  */
-UCLASS(Config=RedTechArtTools, DefaultConfig, meta=(DisplayName="RED Tech Art Tools"))
+UCLASS(config=RedTechArtTools, defaultconfig, meta=(DisplayName="RED Tech Art Tools"))
 class REDTECHARTTOOLSEDITOR_API URedDeveloperSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
@@ -37,6 +38,9 @@ public:
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Editor Icon Widget")
 	TArray<FString> EditorIconWidgetSearchPaths;
 
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category= "Editor Scripting")
+	TArray<FString> AutoRegisterUtilityWidgetPaths;
+	
 	virtual FName GetCategoryName() const override { return FName("Plugins"); }
 
 	URedDeveloperSettings();

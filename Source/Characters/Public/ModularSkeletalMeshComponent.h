@@ -24,8 +24,7 @@ class CHARACTERS_API UModularSkeletalMeshComponent : public USkeletalMeshCompone
 	UFUNCTION( BlueprintCallable )
 	void SetModularSkeletalMesh(USkeletalMesh* InSkeletalMesh);
 
-	UFUNCTION( BlueprintCallable )
-	TArray<UMaterialInstanceDynamic*>& GetAllDynamicMaterialInstances();
+	TArray<TObjectPtr<UMaterialInstanceDynamic>>& GetAllDynamicMaterialInstances();
 
 	UFUNCTION( BlueprintCallable )
 	UMaterialInstanceDynamic* GetDynamicMaterialInstance( int32 MatIndex );

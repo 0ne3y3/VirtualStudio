@@ -47,7 +47,7 @@ bool UModularSkeletalMeshComponent::IsAllSetup()
 	return bIsFullySetup;
 }
 
-TArray<UMaterialInstanceDynamic*>& UModularSkeletalMeshComponent::GetAllDynamicMaterialInstances()
+TArray<TObjectPtr<UMaterialInstanceDynamic>>& UModularSkeletalMeshComponent::GetAllDynamicMaterialInstances()
 {
 	return DynamicMaterialInstances;
 }

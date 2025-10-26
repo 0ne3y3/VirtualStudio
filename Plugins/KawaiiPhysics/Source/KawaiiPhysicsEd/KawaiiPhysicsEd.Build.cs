@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// KawaiiPhysics : Copyright (c) 2019-2024 pafuhana1213, MIT License
 
 using UnrealBuildTool;
 
@@ -8,30 +8,35 @@ public class KawaiiPhysicsEd : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-        PrivateDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "KawaiiPhysics" });
-        PrivateDependencyModuleNames.AddRange(new string[] { "AnimGraph", "BlueprintGraph", "Persona", "UnrealEd", "AnimGraphRuntime", "SlateCore"});
+		PrivateDependencyModuleNames.AddRange(new[]
+		{
+			"Core",
+			"CoreUObject",
+			"Engine",
+			"InputCore",
+			"KawaiiPhysics",
+			"AnimGraph",
+			"BlueprintGraph",
+			"Persona",
+			"UnrealEd",
+			"AnimGraphRuntime",
+			"Slate",
+			"SlateCore"
+		});
 
-        BuildVersion Version;
-        if (BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
-        {
-            if (Version.MajorVersion == 5)
-            {
-				PrivateDependencyModuleNames.AddRange(new string[] { "EditorFramework" });
-				
-				// From UE5.1, BaseClass of EditMode move to new Module 
-				if (Version.MinorVersion >= 1)
-				{
-					PrivateDependencyModuleNames.AddRange(new string[] { "AnimationEditMode" });
-				}
+		if(Target.Version.MajorVersion >= 5)
+		{
+			PrivateDependencyModuleNames.Add("EditorFramework");
+			if (Target.Version.MinorVersion >= 1)
+			{
+				PrivateDependencyModuleNames.Add("AnimationEditMode");
 			}
-        }
 
-		// Uncomment if you are using Slate UI
-		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
-
-		// Uncomment if you are using online features
-		// PrivateDependencyModuleNames.Add("OnlineSubsystem");
-
-		// To include OnlineSubsystemSteam, add it to the plugins section in your uproject file with the Enabled attribute set to true
+			// StructUtils plugin has been integrated into the engine starting from 5.5
+			if (Target.Version.MinorVersion <= 4)
+			{
+				PrivateDependencyModuleNames.Add("StructUtils");
+			}
+		}
 	}
 }

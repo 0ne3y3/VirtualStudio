@@ -24,21 +24,29 @@
 
 #include "Brushes/SlateImageBrush.h"
 #include "Components/Image.h"
-
+#include "HAL/FileManager.h"
+#include "Misc/EngineVersion.h"
 
 void URedEditorIconWidget::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
+	const FSlateBrush& BrushRef = GetBrush();
+#else
+	const FSlateBrush& BrushRef = Brush;
+#endif
+
 	if (!IconPath.Path.IsEmpty() && IFileManager::Get().FileExists(*FPaths::ConvertRelativePathToFull(*IconPath.Path)))
 	{
 		if (const FString Ext = FPaths::GetExtension(IconPath.Path); Ext == "svg")
 		{
-			IconBrush.Reset(new FSlateVectorImageBrush(IconPath.Path, IconSize, GetBrush().TintColor, GetBrush().Tiling));
+			IconBrush.Reset(new FSlateVectorImageBrush(IconPath.Path, IconSize, BrushRef.TintColor, BrushRef.Tiling));
 		}
 		else if (Ext == "png")
 		{
 			IconBrush.Reset(new FSlateDynamicImageBrush(FName(*IconPath.Path), IconSize,
-							 GetBrush().TintColor.GetSpecifiedColor(), GetBrush().Tiling));
+			                                            BrushRef.TintColor.GetSpecifiedColor(), BrushRef.Tiling));
 		}
 		if (IconBrush != nullptr)
 		{

@@ -8,9 +8,9 @@ public class VirtualStudioTarget : TargetRules
 	public VirtualStudioTarget( TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Game;
-		DefaultBuildSettings = BuildSettingsVersion.V2;
-		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_1;
-		ExtraModuleNames.Add("VirtualStudio");
+        DefaultBuildSettings = BuildSettingsVersion.V5;
+        IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
+        ExtraModuleNames.Add("VirtualStudio");
 		ExtraModuleNames.Add("Characters");
 	}
 }

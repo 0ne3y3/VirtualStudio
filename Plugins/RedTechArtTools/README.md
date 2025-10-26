@@ -2,7 +2,7 @@
 
 Unreal Engine 5 Plugin for a variety of Tech Art Tools and features.
 
-Compatible with Unreal Engine verion 5.0.1+
+Compatible with Unreal Engine verion 5.4.0+ (See other branches for other engine versions. Not all features will be supported on all versions.)
 
 ## Installation
 
@@ -15,74 +15,26 @@ The plugin is not **EnabledByDefault** so you will need to enable it in your pro
 
 ## Current Tools
 
-### Material Parameters Helper Widget v1.0.5
+### [Material Parameters Helper Widget v1.0.5](https://github.com/Ryan-DowlingSoka/RedTechArtTools/wiki/Material-Parameter-Helper)
 
-[![Youtube video showing an overview of the Material Parameters Widget tool.](Documentation/Images/mph.youtube_thumb.png)](https://youtu.be/M9s-ld-ldrs)
+Helps with the management, naming, default data, and editing of all material parameters inside of a single material, even if the material parameters are spread through many different material functions.
 
-Production tested materials often have many parameters, and for good reason these parameters are often scattered through modular Material Functions. Naming, Sorting, adding descriptions, and editing defaults for these parameters can be a big pain when working with lots of parameters in various functions and material graphs.
+### [Editor Icon Widget](https://github.com/Ryan-DowlingSoka/RedTechArtTools/wiki/Editor-Icon-Widget)
 
-In addition, it can be really difficult to find where a parameter is used when materials are made through modular Material Functions, since the search feature only can search the local graph.
+Provides access to all unreal native editor icons in a convenient widget.
 
-The Material Parameters Helper Widget attempts to make all of these issues go away by providing a singular interface to modify all parameters used in a material, whether they are at the base material graph level, or inside of a function.
+### BP Enum
 
-#### Opening the widget.
+Hacky class for when things have gotten out of hand. If you have blueprint defined enums in your project and refactoring them is not a reasonable option, this tool (FRedBPEnum) can let you use and manipulate these enums without having to convert them into code, in a slightly better way than the other bad alternatives.
 
-![Image showing the operation to open the Material Parameter Helper widget.](Documentation/Images/mph.asset_action.gif)
-The widget is opened through a scripted asset action.
-Right-click any **Material** or **Material Instance** in the content browser, go to **Scripted Asset Actions** > **Open Material Parameter Helper Widget**.
+### Barycentric Coordinate Geometry Script
 
-If you need to check another material, you can change the **Material To Edit** property to the new material you want to edit.
+Small editor utility to add barycentric uvs to set meshes using geometry scripting. Can be useful for creating a wireframe shader on assets and a variety of other effects. Also a good starting point for looking at how geometry scripting can work.
 
-#### Function List
-
-![Image showing the function list. Functions are enabled and disabled, hiding parameters in the rightmost panel. Parameter names in the functions list jump the rightmost panel to the correct panel.](Documentation/Images/mph.function_list.gif)
-
-The bottom left field lists all the functions that are used in the material. These functions are expandable, showing all the parameter names used in that function.
-
-Clicking a parameter name in the functions list will take you to the corresponding parameter in the total list of parameters on the right.
-
-Functions can be 'disabled' which will hide their results in the right panel, useful when you only need to work on a few parameters at a time.
-
-Clicking the Function name will locate that function in the content browser.
-
-#### Parameters List
-
-The right panel is the parameters list. All parameters used in the enabled functions show up here sorted by **Group Name** > **Sort Priority** > **Parameter Name**, the same sorting used in the Material Instance editor. At the top is a filter search bar which compares against the group name and the parameter name of each item.
-
-![Animated image showing the process of modifying parameter names and priorities, hitting apply, and seeing the updates in a material instance.](Documentation/Images/mph.parameter_panel.main.gif)
-
-Here each parameter's Name, Description, Sort Priority, and Group Name can be edited directly. Modifying Name, Sort Priority, or GroupName will resort the parameter into the list.
-
-Description is a multi-line text box, shift+enter to add a new line. Enter commits the current values.
-
-![Animated image showing using shift+enter to add extra lines to the description box.](Documentation/Images/mph.parameter_list.multiline.gif)
-
-Parameters can be expanded by clicking on the expansion arrow on the left side to see all the properties of the parameter expression.
-
-Default values, channel mask names, and anything that could be edited in the material graph can be edited here.
-
-> :warning: Changing **Sort Priority**, **Group Name**, or **Parameter Name** through the expansion panel will not refresh the panel's sorting.
->
-> The parameter will still be sorted properly in the material instance, but the changes won't be reflected until after the widget is refreshed. You can refresh the widget by reassigning the **Material to Edit**
-
-Clicking the **Material Function** name below the Description field will open the function or material and focus the node directly.
-
-![Animated image showing expanding and editing the texture parameter of a material. Shows how clicking on the function name below the description opens the material graph and highlights the correct node, and how the changes are propogated automatically when the Save and Apply button is pressed.](Documentation/Images/mph.expand_properties.gif)
-
-To save changes and update any open material instance editors click the Save and Apply Button.
-
-### Editor Icon Widget
-
-When making Editor Utility Widgets and tools, it is a pain to create your own icons for simple stuff the engine already has. This tool solves that. It is simily a widget that shows a list of all available slate brushes from select folders and provides them for use exactly as UImage.
-
-![Animated image showing an overview of the features of the Editor Icon Widget.](Documentation/Images/eiw.overview.gif)
-
-The lists of folders is configurable, so if you like working with SVGs you can also add your own folders to the list, and they will be populated. Paths are relative to the /Engine folder. Project paths are untested but probably are accessible by using ../ at the start to get out of the Engine folder.
-
-![Image showing Project Settings > RED Tech Art Tools > Editor Icon Widget Search Paths](Documentation/Images/eiw.configurations_list.png)
-
-The widget is editor only, use in a runtime widget will fail to cook.
+[Blog post on how to make this for yourself and more information on what is going on.](https://ryandowlingsoka.com/unreal/wireframe-barycentric-coords/)
 
 ### Batch Rename Widget
 
-todo
+Editor utility to add batch renaming of actors and assets through a right click menu.
+
+[Tutorial series on how you can make your own batch rename widget and how it works.](https://ryandowlingsoka.com/unreal/batch-rename-tool/)

@@ -24,9 +24,74 @@
 
 #include "CoreMinimal.h"
 #include "BlueprintEditorLibrary.h"
+#include "Blueprint/UserWidget.h"
 #include "RedTechArtToolsBlueprintLibrary.generated.h"
 
 class UDataTable;
+
+#define LOCTEXT_NAMESPACE "RedTechArtToolsBlueprintLibrary"
+
+/** Array of referencing actors as soft object ptrs.*/
+USTRUCT(BlueprintType)
+struct REDTECHARTTOOLSEDITOR_API FReferencingActors
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ReferencingActors)
+	TSoftObjectPtr<AActor> ReferencedActor;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ReferencingActors)
+	TArray<TSoftObjectPtr<AActor>> Actors;
+
+	
+	FReferencingActors(){}
+	FReferencingActors(AActor* InReferencedActor, TArray<AActor*>& InActors)
+	{
+		ReferencedActor = InReferencedActor;
+		for(TSoftObjectPtr<AActor> Actor : InActors)
+		{
+			Actors.Add(Actor);
+		}
+	}
+};
+
+/** Window options for the ShowWidgetDialog blueprint function.*/
+USTRUCT(BlueprintType)
+struct REDTECHARTTOOLSEDITOR_API FShowWidgetDialogOptions
+{
+	GENERATED_BODY()
+
+	/** Size to the widget contents. When false, minimum size is used instead and the user can resize the widget. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ShowWidgetDialogOptions)
+	bool bAutoSized = true;
+
+	/** Minimum size for the widget, necessary for when bAutoSized is false, but also will restrict the user from shrinking
+	 *  the widget too small.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ShowWidgetDialogOptions)
+	FVector2D MinimumSize = FVector2D::ZeroVector;
+
+	/** Creates default OK and CANCEL buttons. Without these the ShowDialog command will always return false.
+	 *  If bUseDefaultButtons is false you will need to implement your own buttons, you can use CloseWidgetParentWindow
+	 *  to close the window. Useful when you need more user button options.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ShowWidgetDialogOptions)
+	bool bUseDefaultButtons = true;
+	
+	/** When using bUseDefaultButtons the text to show in the "Ok" field. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ShowWidgetDialogOptions)
+	FText OkayButtonText = LOCTEXT("ShowWidgetDialogOptions_Ok", "Ok");
+
+	/** When using bUseDefaultButtons the text to show in the "Cancel" field. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ShowWidgetDialogOptions)
+	FText CancelButtonText = LOCTEXT("ShowWidgetDialogOptions_Cancel", "Cancel");
+	
+	/** Sets the window to have a top-bar close button. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ShowWidgetDialogOptions)
+	bool bHasCloseButton = true;
+
+};
+
 /**
  *  Blueprint Library for useful misc Tech Art Tools.
  */
@@ -52,19 +117,19 @@ public:
 
 	/** Is A less than or equal to B alphanumerically. */
 	UFUNCTION(BlueprintCallable, Category=String)
-	static bool AlphaNumericLessThan(UPARAM(ref) FString& A, UPARAM(ref) FString& B);
+	static bool AlphaNumericLessThan(UPARAM(ref) const FString& A, UPARAM(ref) const FString& B);
 
 	/** Is A less than or equal to B alphanumerically. */
 	UFUNCTION(BlueprintCallable, Category=String)
-	static bool AlphaNumericLessThanOrEqual(UPARAM(ref) FString& A, UPARAM(ref) FString& B);
+	static bool AlphaNumericLessThanOrEqual(UPARAM(ref) const FString& A, UPARAM(ref) const FString& B);
 
 	/** Is A less than or equal to B alphanumerically. */
 	UFUNCTION(BlueprintCallable, Category=String)
-	static bool AlphaNumericGreaterThan(UPARAM(ref) FString& A, UPARAM(ref) FString& B);
+	static bool AlphaNumericGreaterThan(UPARAM(ref) const FString& A, UPARAM(ref) const FString& B);
 
 	/** Is A less than or equal to B alphanumerically. */
 	UFUNCTION(BlueprintCallable, Category=String)
-	static bool AlphaNumericGreaterThanOrEqual(UPARAM(ref) FString& A, UPARAM(ref) FString& B);
+	static bool AlphaNumericGreaterThanOrEqual(UPARAM(ref) const FString& A, UPARAM(ref) const FString& B);
 
 	/** Opens a modal content picker for a content directory. */
 	UFUNCTION(BlueprintCallable, Category=EditorScripting)
@@ -87,4 +152,28 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category=EditorScripting)
 	static TMap<FString, FString> GetEditorSettableVariables(UObject* Object);
+
+	/**
+	 * Open a modal message box dialog containing a details view for inspecting / modifying a UObject. 
+	 * @param Title 			The title of the created dialog window
+	 * @param InOutWidget 		Widget instance to be viewed. Construct before hand with ConstructObject.
+	 * @param Options			Additional options for presentation of the dialog.
+	 * @return The result of the users decision, true=Ok, false=Cancel, or false if running in unattended mode.
+	*/
+	UFUNCTION(BlueprintCallable, Category = EditorScripting)
+	static bool ShowWidgetDialog(const FText& Title, UUserWidget* InOutWidget, UPARAM(ref) const FShowWidgetDialogOptions& Options);
+
+	/** Close the parent window for a given widget. */
+	UFUNCTION(BlueprintCallable, Category=EditorScripting, meta=(DefaultToSelf="Widget"))
+	static bool CloseWidgetParentWindow(UWidget* Widget);
+
+	UFUNCTION(BlueprintCallable, Category = EditorScripting)
+	static UObject* GetDefaultObjectFromBlueprint(const UObject* Blueprint);
+
+	/** A blueprint compatible wrapper for FBlueprintEditorUtils::GetActorReferenceMap(World, InClassesToIgnore, ReferencingActors); If using C++, use that instead.*/
+	UFUNCTION(BlueprintCallable, Category = EditorScripting, meta=(WorldContext=WorldContextObject, AutoCreateRefTerm=InClassesToIgnore))
+	static TMap<TSoftObjectPtr<AActor>, FReferencingActors> GetActorReferenceMap(UObject* WorldContextObject, UPARAM(ref) TArray<UClass*>& InClassesToIgnore);
+	
 };
+
+#undef LOCTEXT_NAMESPACE

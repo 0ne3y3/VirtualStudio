@@ -2,6 +2,31 @@
 
 #include "HumanAnimationData.h"
 
+UARKitPosePreset::UARKitPosePreset() : JawDelay(0.15f), JawWeight(1.f)
+{
+}
+
+UARkitPreProcessorPreset::UARkitPreProcessorPreset()
+{
+}
+
+UGoalPosePreset::UGoalPosePreset()
+{
+}
+
+USimpleArkitToFaceCurvesPreset::USimpleArkitToFaceCurvesPreset()
+{
+}
+
+UPostProcessBodyPreset::UPostProcessBodyPreset()
+{
+}
+
+FCRFaceData::FCRFaceData()
+{
+	Color = FLinearColor(1.f, 1.f, 1.f);
+}
+
 TMap<FName, float> FHumanStateData::GetHumanStateFloatTMap()
 {
 	TMap<FName, float> FloatMap;

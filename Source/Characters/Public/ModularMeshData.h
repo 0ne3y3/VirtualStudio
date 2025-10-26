@@ -7,6 +7,8 @@
 #include "HumanAnimationData.h"
 #include "ModularMeshData.generated.h"
 
+class UCustomizableObject;
+
 /**
 * Enum for body type (Male/Female)
 */
@@ -18,826 +20,493 @@ enum class EBodyType : uint8
 };
 
 /**
-* Enum for part of the body
+* Enum for body layer
 */
-UENUM( BlueprintType )
-enum class EBodyPartType : uint8
-{
-	MainBody,
-	Head,
-	Hair,
-	Torso,
-	Arms,
-	Hands,
-	Legs,
-	Feet,
-	BodyMAX,
-	Accessory,
-	Special
-};
-
 UENUM( BlueprintType )
 enum class EBodyLayer : uint8
 {
 	Skin,
 	Inside,
-	Middle,
 	Outer,
-	Accessory,
+	Accessory
 };
 
 /**
-* FHairData
+* FMutableIrisTexture
 *
-* Structure containing hair data.
+* Structure containing the eye iris texture for character.
 */
-USTRUCT( BlueprintType )
-struct CHARACTERS_API FHairData
-{
-
-	GENERATED_USTRUCT_BODY()
-
-	public:
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Color", meta = ( ClampMin = 0, ClampMax = 32, UIMin = 0, UIMax = 32 ) )
-	int32 PrimaryColorCurve1 = 0.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Color", meta = ( ClampMin = 0, ClampMax = 32, UIMin = 0, UIMax = 32 ) )
-	int32 PrimaryColorCurve2 = 0.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Color", meta = ( ClampMin = 0, ClampMax = 32, UIMin = 0, UIMax = 32 ) )
-	int32 PrimaryColorCurve3 = 0.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Color", meta = ( ClampMin = 0, ClampMax = 32, UIMin = 0, UIMax = 32 ) )
-	int32 PrimaryBackColorCurve1 = 0.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Color", meta = ( ClampMin = 0, ClampMax = 32, UIMin = 0, UIMax = 32 ) )
-	int32 PrimaryBackColorCurve2 = 0.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Color", meta = ( ClampMin = 0, ClampMax = 32, UIMin = 0, UIMax = 32 ) )
-	int32 PrimaryBackColorCurve3 = 0.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Color", meta = ( ClampMin = 0, ClampMax = 32, UIMin = 0, UIMax = 32 ) )
-	int32 AnisotropicColorCurve1 = 0.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Color", meta = ( ClampMin = 0, ClampMax = 32, UIMin = 0, UIMax = 32 ) )
-	int32 AnisotropicColorCurve2 = 0.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Color", meta = ( ClampMin = 0, ClampMax = 32, UIMin = 0, UIMax = 32 ) )
-	int32 AnisotropicColorCurve3 = 0.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Color", meta = ( ClampMin = 0, ClampMax = 32, UIMin = 0, UIMax = 32 ) )
-	int32 AnisotropicBackColorCurve1 = 0.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Color", meta = ( ClampMin = 0, ClampMax = 32, UIMin = 0, UIMax = 32 ) )
-	int32 AnisotropicBackColorCurve2 = 0.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Color", meta = ( ClampMin = 0, ClampMax = 32, UIMin = 0, UIMax = 32 ) )
-	int32 AnisotropicBackColorCurve3 = 0.f;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "General", meta = ( ClampMin = 0, ClampMax = 5, UIMin = 0, UIMax = 5 ) )
-	float SubsurfacePrimaryColorBoost = 1.2f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "General", meta = ( ClampMin = 0, ClampMax = 5, UIMin = 0, UIMax = 5 ) )
-	float SubsurfaceAnisotropicColorBoost = 1.05f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "General", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float BaseMetallic = 0.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "General", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float RoughnessMax = 0.8f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "General", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float SpecularMin = 0.1f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "General", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float MinSubsurfaceOpacity = 0.8f;
-
-	TMap<FName, float> GetHairTMap();
-};
-
-/**
-* FEyeCustomData
-*
-* Structure containing eye custom data.
-*/
-USTRUCT( BlueprintType )
-struct CHARACTERS_API FEyeData
+USTRUCT(BlueprintType)
+struct CHARACTERS_API FMutableIrisTexture : public FTableRowBase
 {
 	GENERATED_USTRUCT_BODY()
 
+	FMutableIrisTexture();
+
 	public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSoftObjectPtr<UTexture2D> IrisTexture;
 
-	static const int32 MaxCustomData = 35; // Last custom data index
-	static const int32 LeftRightCustomDataIndex = 18; // At which custom data index we tell the material this is the left or right eye
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|CustomData|General", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ))
-	TArray<float> BaseMetal;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|CustomData|General", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	TArray<float> BaseSpecular;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|CustomData|General", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	TArray<float> BaseRoughness;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|CustomData|Color", meta = ( ClampMin = 0, UIMin = 0 ) )
-	TArray<float> ColorCurveSelection;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|CustomData|Transform" )
-	TArray<FVector2D> IrisScale;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|CustomData|Transform", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float EyesMinimumScale = 0.45f;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|CustomData|Transform" )
-	TArray<FVector2D> IrisOffset;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|CustomData|Color" )
-	TArray<FLinearColor> ScleraColor;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|CustomData|Color", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	TArray<float> ScleraTextureOpacity;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|CustomData|Color" )
-	TArray<FLinearColor> ScleraTextureColor;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|CustomData|Color", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	TArray<float> ScleraShadowBrightness;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|CustomData|Transform" )
-	TArray<FVector2D> ScleraShadowOffset;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|Material", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float MaxCryingEffect = 0.1f;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face|Material", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float EyelashShadowWeightClose = 0.35f;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face|Material", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float EyelashShadowWeightOpen = 0.1f;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|Material" )
-	TArray<FLinearColor> ScleraColorBleeding;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eyes|Material" )
-	TArray<TSoftObjectPtr<UMaterialInterface>> CustomEyesMaterials;
-
-	float GetCustomDataValue(int32 EyeIndex, int32 CustomDataIndex);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSoftObjectPtr<UTexture2D> HeightTexture;
 };
 
 /**
-* FSkinFaceData
+* FMutableHighlightTexture
 *
-* Structure containing skin and face data.
+* Structure containing the highlight texture for character.
 */
-USTRUCT( BlueprintType )
-struct CHARACTERS_API FSkinFaceData
-{
-
-	FSkinFaceData() { 
-	SkinSubsurfaceColorTint = FLinearColor(0.133f, 0.052435f, 0.047348f, 1.0f); 
-	FaceCheekColor = FLinearColor( 0.041667f, 0.000866f, 0.001280f, 1.000000f );
-	FaceLipsColor = FLinearColor( 0.041667f, 0.007015f, 0.003906f, 1.000000f );
-	FaceTongueColor = FLinearColor( 0.114583f, 0.008355f, 0.010954f, 1.000000f );
-	FaceInsideMouthColor = FLinearColor( 0.099899f, 0.005182f, 0.007499f, 1.000000f );
-	FaceTeethColor = FLinearColor( 0.630000f, 0.630000f, 0.630000f, 1.000000f );
-	FaceEffectYandereColor = FLinearColor( 0.022461f, 0.028193f, 0.093750f, 0.000000f );
-	FaceEffectMadColor = FLinearColor( 0.656250f, 0.010254f, 0.031040f, 0.000000f );
-	NailsColorHandLeft = FLinearColor( 0.135633f, 0.107235f, 0.109938f, 1.000000f );
-	NailsColorHandRight = FLinearColor( 0.135633f, 0.107235f, 0.109938f, 1.000000f );
-	NailsColorFootLeft = FLinearColor( 0.135633f, 0.107235f, 0.109938f, 1.000000f );
-	NailsColorFootRight = FLinearColor( 0.135633f, 0.107235f, 0.109938f, 1.000000f );
-	}
-
-	GENERATED_USTRUCT_BODY()
-
-	public:
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Skin", meta = ( ClampMin = 0, ClampMax = 32, UIMin = 0, UIMax = 32 ) )
-	int32 SkinColorCurve = 0.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Skin", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float SkinBaseMetallic = 0.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Skin", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float SkinBaseRoughness = 0.8f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Skin", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float SkinBaseSpecular = 0.1f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Skin", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float SkinSubsurfaceOpacity = 0.5f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Skin", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	FLinearColor SkinSubsurfaceColorTint;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Nails", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float NailsRoughness = 0.2f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Nails", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float NailsSpecular = 0.600000f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Nails" )
-	FLinearColor NailsColorHandLeft;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Nails" )
-	FLinearColor NailsColorHandRight;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Nails" )
-	FLinearColor NailsColorFootLeft;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Nails" )
-	FLinearColor NailsColorFootRight;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face" )
-	FLinearColor FaceCheekColor;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face" )
-	FLinearColor FaceLipsColor;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face", meta = ( ClampMin = 0, ClampMax = 32, UIMin = 0, UIMax = 32 ) )
-	int32 FaceMascaraColorCurve = 0;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face" )
-	FLinearColor FaceTongueColor;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face" )
-	FLinearColor FaceInsideMouthColor;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face" )
-	FLinearColor FaceTeethColor;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face", meta = ( ClampMin = 0, ClampMax = 32, UIMin = 0, UIMax = 32 ) )
-	int32 FaceEyelashColorCurve = 0.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face", meta = ( ClampMin = 0, ClampMax = 32, UIMin = 0, UIMax = 32 ) )
-	int32 FaceEyebrowColorCurve = 0.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float FaceEyebrowAndEyelashRoughness = 1.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float FaceInsideMouthAndTongueRoughness = 0.41f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float FaceEyebrowAndEyelashSpecular = 0.2f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float FaceInsideMouthAndTongueSpecular = 0.2f;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "FaceEffect" )
-	FLinearColor FaceEffectYandereColor;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "FaceEffect" )
-	FLinearColor FaceEffectMadColor;
-
-	TMap<FName, float> GetSkinFloatTMap();
-	TMap<FName, FVector4> GetSkinVectorTMap();
-};
-
-/**
-* FClothData
-*
-* Structure containing cloth data.
-*/
-USTRUCT( BlueprintType )
-struct CHARACTERS_API FClothData
+USTRUCT(BlueprintType)
+struct CHARACTERS_API FMutableHighlightTexture : public FTableRowBase
 {
 	GENERATED_USTRUCT_BODY()
 
-	FClothData()
-	{
-		ClothMaterialBaseProperties1 = FVector4(0.0f, 0.1f, 0.95f, 0.0f);
-		ClothMaterialBaseProperties2 = FVector4( 0.0f, 0.5f, 0.4f, 0.0f );
-		ClothMaterialBaseProperties3 = FVector4( 0.0f, 0.6f, 0.4f, 0.0f );
-		ClothMaterialBaseProperties4 = FVector4( 0.0f, 0.1f, 0.95f, 0.0f );
-	};
+	FMutableHighlightTexture();
 
-	public:
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Skin")
-	bool bCanHaveSkin = true;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float ClothDetailTexture1Opacity = 0.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth" )
-	float ClothDetailTexture1Scale = 128.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float ClothDetailTexture2Opacity = 0.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth" )
-	float ClothDetailTexture2Scale = 128.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float ClothDetailTexture3Opacity = 0.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth" )
-	float ClothDetailTexture3Scale = 128.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float ClothDetailTexture4Opacity = 0.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth" )
-	float ClothDetailTexture4Scale = 128.f;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	FVector4 ClothMaterialBaseProperties1;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	FVector4 ClothMaterialBaseProperties2;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	FVector4 ClothMaterialBaseProperties3;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	FVector4 ClothMaterialBaseProperties4;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth", meta = ( ClampMin = 0, ClampMax = 64, UIMin = 0, UIMax = 64 ) )
-	int32 ClothColor1 = 2;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth", meta = ( ClampMin = 0, ClampMax = 64, UIMin = 0, UIMax = 64 ) )
-	int32 ClothColor2 = 0;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth", meta = ( ClampMin = 0, ClampMax = 64, UIMin = 0, UIMax = 64 ) )
-	int32 ClothColor3 = 1;
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Cloth", meta = ( ClampMin = 0, ClampMax = 64, UIMin = 0, UIMax = 64 ) )
-	int32 ClothColor4 = 1;
-
-	TMap<FName, float> GetClothFloatTMap();
-	TMap<FName, FVector4> GetClothVector4TMap();
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSoftObjectPtr<UTexture2D> HighlightTexture;
 };
 
 /**
-* FChildBodyPart
+* FMutableCETexture
 *
-* Structure containing modular parent-child relation. Contained in the parent mesh, it's used to force skin or cloth properties for child cloth material index 0
+* Structure containing the eye camera effect texture for character.
 */
-USTRUCT( BlueprintType )
-struct CHARACTERS_API FChildBodyPart
+USTRUCT(BlueprintType)
+struct CHARACTERS_API FMutableCETexture : public FTableRowBase
 {
 	GENERATED_USTRUCT_BODY()
 
-	public:
+	FMutableCETexture();
 
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly )
-	EBodyPartType MeshType = EBodyPartType::MainBody;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly )
-	bool bSkinMaterialUsed = true;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, meta = ( EditCondition = "bSkinMaterialUsed == false", EditConditionHides ) )
-	bool bForceUsingCloth = false;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, meta = ( EditCondition = "bForceUsingCloth", EditConditionHides, ClampMin = 1, ClampMax = 4, UIMin = 1, UIMax = 4 ) )
-	int32 ClothPropertiesIndex = 0;
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSoftObjectPtr<UTexture2D> CETexture;
 };
 
 /**
- * UMaterialData
- *
- * Non-mutable data asset used for cloth materials.
- */
-UCLASS( BlueprintType, Const, Meta = ( DisplayName = "Skeletal mesh data", ShortTooltip = "Data asset used for cloth materials." ) )
-class CHARACTERS_API UMaterialData : public UPrimaryDataAsset
-{
-	GENERATED_BODY()
-
-	public:
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	TSoftObjectPtr<UMaterialInterface> PrimaryMaterial;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	TSoftObjectPtr<UMaterialInterface> SkinMaterial;
-};
-
-/**
- * USkeletalMeshData
- *
- * Non-mutable data asset that contains properties used to define a skeletal mesh for human body.
- */
-UCLASS( BlueprintType, Const, Meta = ( DisplayName = "Skeletal mesh data", ShortTooltip = "Data asset used to define a skeletal mesh." ) )
-class CHARACTERS_API USkeletalMeshData : public UPrimaryDataAsset
-{
-	GENERATED_BODY()
-
-	public:
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "General" )
-	FName PresetName;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "General", meta = ( ValidEnumValues = "MainBody, Head, Hair, Torso, Arms, Hands, Legs, Feet" ) )
-	EBodyPartType MeshType = EBodyPartType::Torso;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "General", meta = ( EditCondition = "MeshType != EBodyPartType::Head && MeshType != EBodyPartType::MainBody && MeshType != EBodyPartType::Hair", EditConditionHides ) )
-	EBodyLayer MeshLayer = EBodyLayer::Inside;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "General" )
-	TSoftObjectPtr<USkeletalMesh> Mesh;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "General" )
-	TArray<TObjectPtr<UMaterialData>> DefaultMaterials;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	float RainDropsSize = 30.f;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	float RainDropsTopMask = 2.f;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	float RainDropsSpeed = 1.f;
-
-	TMap<FName, float> GetRainFloatTMap();
-
-	FORCEINLINE bool operator==( const USkeletalMeshData* Rhs ) const
-	{
-		return MeshType == Rhs->MeshType && Rhs->Mesh == Mesh;
-	}
-
-	FORCEINLINE bool operator==(TYPE_OF_NULLPTR) const
-	{
-		return Mesh == nullptr;
-	}
-};
-
-/**
- * UMainBodyMeshData
- *
- * Non-mutable data asset that contains properties used to define the main body of a human.
- */
-UCLASS( BlueprintType, Const, Meta = ( DisplayName = "Main body skeletal mesh data", ShortTooltip = "Data asset used to define the main body of a human." ) )
-class CHARACTERS_API UMainBodyMeshData : public USkeletalMeshData
-{
-	GENERATED_BODY()
-
-	UMainBodyMeshData() { MeshType = EBodyPartType::MainBody; MeshLayer = EBodyLayer::Skin;};
-
-	public:
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "AnimationBP" )
-	TObjectPtr<UMainBodyPostProcessAnimationData> PPAnimationData;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "AnimationBP" )
-	TSubclassOf<UAnimInstance> BodyAnimationBlueprint;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	TSoftObjectPtr<UTexture2D> SkinBodyTexture;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	TSoftObjectPtr<UTexture2D> MorphBodyTexture;
-};
-
-/**
- * UHeadMeshData
- *
- * Non-mutable data asset that contains properties used to define the head of a human.
- */
-UCLASS( BlueprintType, Const, Meta = ( DisplayName = "Head skeletal mesh data", ShortTooltip = "Data asset used to define the head of a human." ) )
-class CHARACTERS_API UHeadMeshData : public USkeletalMeshData
-{
-	GENERATED_BODY()
-
-	UHeadMeshData() {MeshType = EBodyPartType::Head ; MeshLayer = EBodyLayer::Skin;};
-
-	public:
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Eye" )
-	TSoftObjectPtr<UStaticMesh> EyeMesh;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Eye" )
-	TArray<TSoftObjectPtr<UMaterialInterface>> DefaultEyesMaterials;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Eye", meta = ( ClampMin = 0, UIMin = 0 ) )
-	int32 NumberOfEyes = 2;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Eye" )
-	TArray<FTransform> EyesTransform;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eye" )
-	FVector2D IrisDefaultPosition;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eye" )
-	FVector2D IrisMaxPositionIn;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eye" )
-	FVector2D IrisMaxPositionOut;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eye" )
-	FVector2D IrisMaxPositionUp;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Eye" )
-	FVector2D IrisMaxPositionDown;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Tears" )
-	TSoftObjectPtr<UStaticMesh> TearsMesh;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Tears" )
-	TSoftObjectPtr<UMaterialInterface> TearsMaterial;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Animation" )
-	TObjectPtr<UARKitPresetData> AnimationData;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	TSoftObjectPtr<UTexture2D> FaceTexture;
-};
-
-/**
- * UHairMeshData
- *
- * Non-mutable data asset that contains properties used to define the hair of a human.
- */
-UCLASS( BlueprintType, Const, Meta = ( DisplayName = "Hair skeletal mesh data", ShortTooltip = "Data asset used to define hairs of a human." ) )
-class CHARACTERS_API UHairMeshData : public USkeletalMeshData
-{
-	GENERATED_BODY()
-
-	UHairMeshData() { MeshType = EBodyPartType::Hair; MeshLayer = EBodyLayer::Skin; RainVariationTextureScaleX = FVector4(0.028799f, -0.068f, -0.0575f); RainVariationTextureScaleY = FVector4(0.078f, -0.02f, -0.0545f); AnisotropicTextureScale = FVector4(8.f, 0.05f, 1.f, 0.15f); };
-
-	public:
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	float AnisotropicStrength = 2.2f;
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	FVector4 AnisotropicTextureScale;
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	float AnisotropicHFRange = 0.09f;
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	float AnisotropicHFOffset = -0.32f;
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	float AnisotropicLFRange = 0.04f;
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	float AnisotropicLFOffset = -0.1f;
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	float AnisotropicBreakTextureScaleX = 200.f;
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	float AnisotropicBreakTextureScaleY = 0.25f;
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	float AnisotropicBreakTextureContrast = 8.f;
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material", meta = ( ClampMin = 0, UIMin = 0 ) )
-	int32 AnisotropicHFCurve = 0.f;
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material", meta = ( ClampMin = 0, UIMin = 0 ) )
-	int32 AnisotropicLFCurve = 0.f;
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	FVector4 RainVariationTextureScaleX;
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	FVector4 RainVariationTextureScaleY;
-
-	TMap<FName, float> GetHairMeshFloatTMap();
-	TMap<FName, FVector4> GetHairMeshVector4TMap();
-};
-
-/**
- * UClothMeshData
- *
- * Non-mutable data asset that contains properties used to define the cloth of a human.
- */
-UCLASS( BlueprintType, Const, Meta = ( DisplayName = "Cloth skeletal mesh data", ShortTooltip = "Data asset used to define cloth of a human." ) )
-class CHARACTERS_API UClothMeshData : public USkeletalMeshData
-{
-	GENERATED_BODY()
-
-	public:
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Cloth" )
-	FClothData DefaultClothData;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Cloth" )
-	TArray<EBodyPartType> ParentHierarchy;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Cloth", meta = ( TitleProperty="{MeshType}" ) )
-	TArray<FChildBodyPart> ChildBodyParts;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Cloth" )
-	bool bDefaultUseSkin;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	TSoftObjectPtr<UTexture2D> ClothDetailTexture1;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	TSoftObjectPtr<UTexture2D> ClothDetailTexture2;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	TSoftObjectPtr<UTexture2D> ClothDetailTexture3;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Material" )
-	TSoftObjectPtr<UTexture2D> ClothDetailTexture4;
-
-};
-
-/**
- * UModularStaticMeshData
- *
- * Non-mutable data asset that contains properties used to define a skeletal mesh for human body.
- */
-UCLASS( BlueprintType, Const, Meta = ( DisplayName = "Static mesh data", ShortTooltip = "Data asset used to define a static mesh." ) )
-class CHARACTERS_API UStaticMeshData : public UPrimaryDataAsset
-{
-	GENERATED_BODY()
-
-	public:
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "General" )
-	FName PresetName;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "General", meta = ( ValidEnumValues = "Accessory, Special" ) )
-	EBodyPartType MeshType = EBodyPartType::Accessory;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "General" )
-	TArray<FName> AvailableSocketToAttach;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "General" )
-	TSoftObjectPtr<UStaticMesh> Mesh;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Material", meta = ( EditCondition = "MeshType!=EBodyPartType::Special", EditConditionHides ) )
-	TArray<TObjectPtr<UMaterialData>> DefaultMaterials;
-};
-
-/**
- * UMainBodyPostProcessAnimationData
- *
- * Non-mutable data asset that contains properties used for post process animation of main body.
- */
-UCLASS( BlueprintType, Const, Meta = ( DisplayName = "Main body PP animation", ShortTooltip = "Data asset for main body's post process animation." ) )
-class CHARACTERS_API UMainBodyPostProcessAnimationData : public UPrimaryDataAsset
-{
-	GENERATED_BODY()
-
-	public:
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float UpperarmCorrectiveRoot = 0.65;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float UpperarmTwist1 = 0.2;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float UpperarmTwist2 = 0.8;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float LowerarmCorrectiveRoot = 0.5;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float LowerarmTwist1 = 0.4;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float LowerarmTwist2 = 0.8;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float ThighCorrectiveRoot = 0.6;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float ThighTwist = 0.5;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float CalfCorrectiveRoot = 0.5;
-
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ) )
-	float CalfTwist = 0.5;
-};
-
-/**
-* FModularSkeletalMeshData
+* FMutableCharacterObject
 *
-* Structure containing a skeletal mesh.
+* Structure containing the customizable object for creating mutable character.
 */
-USTRUCT( BlueprintType )
-struct CHARACTERS_API FModularSkeletalMeshData
+USTRUCT(BlueprintType)
+struct CHARACTERS_API FMutableCharacterObject : public FTableRowBase
 {
 	GENERATED_USTRUCT_BODY()
 
-	public:
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName Name;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "General" )
-	TObjectPtr<USkeletalMeshData> MeshData;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Material" )
-	bool bUseCustomMaterial;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Material" )
-	bool bUseSkin;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Material", meta = ( EditCondition = "bUseCustomMaterial", EditConditionHides ) )
-	TArray<TObjectPtr<UMaterialData>> CustomMaterials;
-
-	UPROPERTY( VisibleInstanceOnly, BlueprintReadWrite )
-	FClothData CurrentClothData;
-
-	void CopyPropertiesFromParent( FModularSkeletalMeshData& ParentData, bool bIsParentSetup );
-	
-	FORCEINLINE bool operator==( const FModularSkeletalMeshData& Rhs ) const
-	{
-		return Rhs.MeshData == MeshData;
-	}
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSoftObjectPtr<UCustomizableObject> CustomObject;
 };
 
 /**
-* FModularMainBodyData
+* FMutableHumanHead
 *
-* Structure containing a skeletal mesh.
+* Structure containing a head skeletal mesh and its default properties.
 */
-USTRUCT( BlueprintType )
-struct CHARACTERS_API FModularMainBodyData
-{
-
-	GENERATED_USTRUCT_BODY()
-
-	public:
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "General" )
-	TObjectPtr<UMainBodyMeshData> MeshData;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Material" )
-	bool bUseCustomMaterial;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Material", meta = ( EditCondition = "bUseCustomMaterial", EditConditionHides ) )
-	TArray<TObjectPtr<UMaterialData>> CustomMaterials;
-
-	FORCEINLINE bool operator==( const FModularSkeletalMeshData& Rhs ) const
-	{
-		return Rhs.MeshData == MeshData;
-	}
-};
-
-/**
-* FModularStaticMeshData
-*
-* Structure containing data for a static mesh.
-*/
-USTRUCT( BlueprintType )
-struct CHARACTERS_API FModularStaticMeshData
+USTRUCT(BlueprintType)
+struct CHARACTERS_API FMutableHumanHead : public FTableRowBase
 {
 	GENERATED_USTRUCT_BODY()
 
-	public:
+public:
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category="Mesh")
-	TObjectPtr<UStaticMeshData> MeshData;
+	FMutableHumanHead();
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Material" )
-	bool bUseCustomMaterial;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Material", meta = ( EditCondition = "bUseCustomMaterial", EditConditionHides ) )
-	TArray<TSoftObjectPtr<UMaterialInterface>> CustomMaterials;
-};
-
-/**
-* FHumanBodyMorphology
-*
-* Structure containing a human body morphology.
-*/
-USTRUCT( BlueprintType )
-struct CHARACTERS_API FHumanBodyMorphology
-{
-	GENERATED_USTRUCT_BODY()
-
-	public:
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body|General" )
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EBodyType BodyType;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body|General", meta = ( ClampMin = 0, UIMin = 0, ToolTip = "Height of the character" ) )
-	float Height = 1.85f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSoftObjectPtr<USkeletalMesh> HeadMesh;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body|Morph", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1, ToolTip = "Increase legs fat, bigger legs with roundish shape" ) )
-	float LegsFat = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSoftObjectPtr<UMaterialInterface> DefaultHeadMaterial;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body|Morph", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1, ToolTip = "Increase legs muscles, bigger legs but the shape feel less fat" ) )
-	float LegsMuscle = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSoftObjectPtr<UMaterialInterface> DefaultEyeMaterial;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body|Morph", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1, ToolTip = "Increase stomach and hips fat" ) )
-	float BodyFat = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Textures")
+	TSoftObjectPtr<UTexture2D> HeadTexture;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body|Morph", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1, ToolTip = "Increase stomach muscles" ) )
-	float BodyMuscle = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Textures")
+	TSoftObjectPtr<UTexture2D> HairShaved;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body|Morph", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1, ToolTip = "Increase boob size and their physics" ) )
-	float Boobs = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Textures")
+	TSoftObjectPtr<UTexture2D> HeadMask;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Body|Morph", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1, ToolTip = "Increase arms muscles" ) )
-	float ArmsMuscles = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Textures")
+	TSoftObjectPtr<UTexture2D> DefaultDetailsTexture;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face|Morph", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1, ToolTip = "Make the mouth goes :3" ) )
-	float CatMouth = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float FaceEffectMin;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face|Morph", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1, ToolTip = "Fix the CatMouth's bottom lip when the mouth is open. See it as a weight." ) )
-	float CatMouthFixWhenOpen = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float FaceEffectMax;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face|Morph", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1, ToolTip = "Increase top canines size, for vampire/animal characters" ) )
-	float CanineTop = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float NoseMaskContrast;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face|Morph", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1, ToolTip = "Increase bottom canines size, for animal characters" ) )
-	float CanineBottom = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Position")
+	float IrisDefaultPositionX;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face|Morph", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1, ToolTip = "When the top lip is opening, top teeth will follow it, used for anime character. See it as a weight." ) )
-	float TeethTop = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Position")
+	float IrisDefaultPositionY;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Face|Morph", meta = ( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1, ToolTip = "When the top lip is opening, take the average of both morphtarget (left and right). After being superior to this threshold, start to move teeth up." ) )
-	float TeethTopThreshold = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Position")
+	FVector2D IrisMaxPositionInOut;
 
-	TMap<FName, float> GetBodyMorphologyTMap();
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Position")
+	FVector2D IrisMaxPositionUpDown;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Scale")
+	float EyesScaleX;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Scale")
+	float EyesScaleY;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Highlight")
+	float HighlightMaxScaleX;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Highlight")
+	float HighlightMaxScaleY;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Highlight")
+	float HighlightMaxRotation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|CE")
+	FLinearColor CameraEffectTransform;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Sclera")
+	TSoftObjectPtr<UTexture2D> DefaultScleraTexture;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Sclera")
+	FLinearColor ScleraTextureTransform;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Sclera")
+	float ScleraDefaultDarkCornerOffsetY;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Sclera")
+	float ScleraDarkCornerEyeCloseWeight;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Sclera")
+	float ScleraDarkCornerEyeWideWeight;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Pupil")
+	float PupilOffsetMin;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Pupil")
+	float PupilOffsetMax;
 };
 
 /**
-* FHumanBodyData
+* FMutableHumanHeadProperties
 *
-* Structure containing a human body properties.
+* Structure containing a mostly head properties you want to change per character.
 */
-USTRUCT( BlueprintType )
-struct CHARACTERS_API FHumanBodyData
+USTRUCT(BlueprintType)
+struct CHARACTERS_API FMutableHumanHeadProperties : public FTableRowBase
 {
 	GENERATED_USTRUCT_BODY()
 
-	public:
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "General" )
-	FName PresetName = "Custom";
+public:
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "General" )
-	FHumanBodyMorphology BodyMorphology;
+	FMutableHumanHeadProperties();
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Mesh" )
-	FModularMainBodyData MainBody;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes")
+	int32 EyeColorCurveIndex;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Mesh", meta=( TitleProperty= "{MeshData}" ))
-	TArray<FModularSkeletalMeshData> SkeletalMeshes;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes")
+	float EyesMinimumScale;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Mesh" )
-	TArray<FModularStaticMeshData> StaticMeshes;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes")
+	float EyeMetallic;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Data" )
-	FSkinFaceData SkinAndFaceData;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes")
+	float IrisSpecular;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Data" )
-	FHairData HairData;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes")
+	float IrisRoughness;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Data" )
-	FEyeData EyeData;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes")
+	float IrisHueShift;
 
-	bool IsCustomData() const;
-	FModularSkeletalMeshData& GetSkeletalMeshData(EBodyPartType InBodyPartType);
-	void RemoveOneSkeletalMeshPart(EBodyPartType BodyPartToRemove);
-	EBodyPartType GetNextBodyPartToLoad( EBodyPartType CurrentBodyPart );
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Sclera")
+	float ScleraDarkCornerHardness;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Sclera")
+	float ScleraSpecular;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Sclera")
+	float ScleraRoughness;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Sclera")
+	FLinearColor ScleraColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Sclera")
+	FLinearColor ScleraDarkCornerColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Sclera")
+	FLinearColor ScleraTextureColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Highlight")
+	FLinearColor HighlightColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|Highlight")
+	FLinearColor HighlightBorderColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|CE")
+	float CameraEffectOpacity;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|CE")
+	float CameraEffectSpeed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|CE")
+	FLinearColor CameraEffectTopColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|CE")
+	FLinearColor CameraEffectMiddleColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Eyes|CE")
+	FLinearColor CameraEffectBottomColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mouth")
+	FLinearColor TeethColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mouth")
+	FLinearColor TongueColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mouth")
+	FLinearColor MouthInsideColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mouth")
+	FLinearColor LipsColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mouth")
+	float LipsLineDarkness;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mouth")
+	float MouthAndTongueSpecular;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mouth")
+	float MouthAndTongueRoughness;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Face")
+	FLinearColor CheekColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Face")
+	FLinearColor EyelidColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Face")
+	FLinearColor NoseColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Face|Eyelash")
+	FLinearColor EyelashBaseColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Face|Eyelash")
+	FLinearColor EyelashSecondaryColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Face|Eyelash")
+	FLinearColor EyelashTertiaryColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Face|Eyebrow")
+	FLinearColor EyebrowBaseColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Face|Eyebrow")
+	FLinearColor EyebrowSecondaryColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Face|Eyebrow")
+	FLinearColor EyebrowTertiaryColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Face|Beard")
+	FLinearColor BeardColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Face|Beard")
+	float BeardAndHairShavedOpacity;
 };
 
 /**
-* UHumanBodyPresetData
+* FMutableHumanSkin
 *
-* Mutable data asset that contains all human body data. Create preset for character. /!\ Do not change values at runtime.
+* Structure containing a skin tone properties.
 */
-UCLASS( BlueprintType, Const, Meta = ( DisplayName = "Human body data", ShortTooltip = "Data asset used to define a human body." ) )
-class CHARACTERS_API UHumanBodyPresetData : public UPrimaryDataAsset
+USTRUCT(BlueprintType)
+struct CHARACTERS_API FMutableHumanSkin : public FTableRowBase
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+
+	FMutableHumanSkin();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName SkinName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = ( ClampMin=0, UIMin=0 ))
+	float SkinColorCurveIndex;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FLinearColor SkinSubsurfaceTintColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1))
+	float SkinLineartDarkness;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1))
+	float SkinOutlineDarkness;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FLinearColor FaceEffectYandereColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FLinearColor FaceEffectMadColor;
+};
+
+/**
+* FMutableHumanBody
+*
+* Structure containing a body skeletal mesh and its default properties.
+*/
+USTRUCT(BlueprintType)
+struct CHARACTERS_API FMutableHumanBody : public FTableRowBase
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+
+	FMutableHumanBody();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EBodyType BodyType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSoftObjectPtr<USkeletalMesh> BobyMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSoftObjectPtr<UMaterialInterface> BodyDefaultMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Textures")
+	TSoftObjectPtr<UTexture2D> GrayscaleSkinTexture;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Textures")
+	TSoftObjectPtr<UTexture2D> NailsMaskTexture;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Textures")
+	TSoftObjectPtr<UTexture2D> TopHeadTexture;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	TSoftObjectPtr<UPostProcessBodyPreset> BodyAnimationPP;
+};
+
+/**
+* FMutableHumanBodyProperties
+*
+* Structure containing a mostly body properties you want to change per character.
+*/
+USTRUCT(BlueprintType)
+struct CHARACTERS_API FMutableHumanBodyProperties : public FTableRowBase
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+
+	FMutableHumanBodyProperties();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Nails")
+	FLinearColor NailsHandLeftColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Nails")
+	FLinearColor NailsHandRightColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Nails")
+	FLinearColor NailsFootLeftColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Nails")
+	FLinearColor NailsFootRightColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skin")
+	float SkinBaseMetallic;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skin")
+	float SkinBaseSpecular;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skin")
+	float SkinBaseRoughness;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skin")
+	float SkinSubsurfaceOpacity;
+};
+
+UCLASS(BlueprintType, Const, Meta = (DisplayName = "Mutable Human Head Preset", ShortTooltip = "Data asset used to define a mutable character head."))
+class CHARACTERS_API UMutableHeadPreset : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 
-	public:
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, meta = ( ShowOnlyInnerProperties ) )
-	FHumanBodyData BodyData;
+public:
+
+	UMutableHeadPreset();
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FName PresetName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName HeadMeshRowName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName IrisTextureRowName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName HighlightTextureRowName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName CETextureRowName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FMutableHumanHeadProperties HeadProperties;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UPoseAsset> TonguePoseAsset;
+};
+
+UCLASS(BlueprintType, Const, Meta = (DisplayName = "Mutable Human Body Preset", ShortTooltip = "Data asset used to define a mutable character body."))
+class CHARACTERS_API UMutableBodyPreset : public UPrimaryDataAsset
+{
+	GENERATED_BODY()
+
+public:
+
+	UMutableBodyPreset();
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FName PresetName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName BodyMeshRowName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName SkinColorRowName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FMutableHumanBodyProperties BodyProperties;
+};
+
+UCLASS(BlueprintType, Const, Meta = (DisplayName = "Mutable Human Character Preset", ShortTooltip = "Data asset used to define a mutable complete character."))
+class CHARACTERS_API UMutableCharacterPreset : public UPrimaryDataAsset
+{
+	GENERATED_BODY()
+
+public:
+
+	UMutableCharacterPreset();
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FName PresetName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UMutableBodyPreset> BodyPreset;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UMutableHeadPreset> HeadPreset;
 };

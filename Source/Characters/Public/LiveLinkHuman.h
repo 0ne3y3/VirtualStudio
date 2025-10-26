@@ -20,7 +20,7 @@ class CHARACTERS_API ALiveLinkHuman : public AHuman
 	ALiveLinkHuman( const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get() );
 
 	public:
-	FORCEINLINE void SetHeadAnimationData( UARKitPresetData* InFaceARKitData ) override { FaceARKitData = InFaceARKitData; };
+	//FORCEINLINE void SetHeadAnimationData( UARKitPresetData* InFaceARKitData ) override { FaceARKitData = InFaceARKitData; };
 
 	// Called every frame
 	virtual void Tick( float DeltaTime ) override;
@@ -35,14 +35,6 @@ class CHARACTERS_API ALiveLinkHuman : public AHuman
 	UPROPERTY( VisibleDefaultsOnly, BlueprintReadOnly, Category = "ARKitData" )
 	FRotator HeadRotation;
 
-	UPROPERTY( VisibleDefaultsOnly, BlueprintReadWrite, Category = "Animation" )
-	TObjectPtr<UARKitPresetData> FaceARKitData;
-
 	private:
 	class ILiveLinkClient* CachedLiveLinkClient;
-
-	#if WITH_EDITORONLY_DATA
-	public:
-	FORCEINLINE virtual void SetArkitName_Editor( FName InName ) override { FaceARKitSubjectName = InName ;};
-	#endif
 };

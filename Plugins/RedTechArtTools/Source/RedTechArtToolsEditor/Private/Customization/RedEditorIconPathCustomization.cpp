@@ -25,7 +25,13 @@
 #include "RedEditorIconWidget.h"
 #include "RedDeveloperSettings.h"
 #include "SSearchableComboBox.h"
+#include "Algo/Transform.h"
 #include "Brushes/SlateImageBrush.h"
+#include "HAL/FileManager.h"
+#include "Widgets/SToolTip.h"
+#include "Widgets/Images/SImage.h"
+
+#define LOCTEXT_NAMESPACE "RedEditorIconCustomization"
 
 TSharedRef<IPropertyTypeCustomization> FRedEditorIconPathCustomization::MakeInstance()
 {
@@ -57,9 +63,9 @@ void FRedEditorIconPathCustomization::CustomizeHeader(TSharedRef<IPropertyHandle
 				                         {
 					                         if (NewChoice.IsValid())
 					                         {
+					                         	const FScopedTransaction Transaction(LOCTEXT("SetEditorIcon", "Set Editor Icon Path"));
 						                         StructPropertyHandle.Get().NotifyPreChange();
 						                         CurrentValue->Path = *NewChoice;
-						                         const FString ChoiceItemName = FPaths::GetCleanFilename(*NewChoice);
 						                         StructPropertyHandle.Get().NotifyPostChange(
 							                         EPropertyChangeType::ValueSet);
 					                         }
@@ -186,3 +192,5 @@ void FRedEditorIconPathCustomization::GetIconsFromPath(const FString& InPath, TA
 	IFileManager::Get().FindFilesRecursive(OutFoundIcons, *SearchDirectory, TEXT("*.png"), true, false, false);
 	IFileManager::Get().FindFilesRecursive(OutFoundIcons, *SearchDirectory, TEXT("*.svg"), true, false, false);
 }
+
+#undef LOCTEXT_NAMESPACE

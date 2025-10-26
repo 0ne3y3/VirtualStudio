@@ -80,8 +80,8 @@ class CHARACTERSEDITOR_API UCharacterCreationUtility : public UEditorUtilityWidg
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, meta = ( BindWidget ) )
 	TObjectPtr<UButton> BlinkButton;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
-	FHumanBodyData CharacterProperties;
+	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
+	FHumanBodyData CharacterProperties;*/
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Character", meta = ( DisplayName = "Class to use" ) )
 	TSubclassOf<AHuman> CharacterClass;

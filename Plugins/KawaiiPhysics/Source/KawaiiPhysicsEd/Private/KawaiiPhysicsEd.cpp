@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// KawaiiPhysics : Copyright (c) 2019-2024 pafuhana1213, MIT License
 
 #include "KawaiiPhysicsEd.h"
 #include "Modules/ModuleManager.h"
@@ -8,12 +8,12 @@
 #define LOCTEXT_NAMESPACE "FKawaiiPhysicsModuleEd"
 
 
-
 void FKawaiiPhysicsEdModule::StartupModule()
 {
-	FEditorModeRegistry::Get().RegisterMode<FKawaiiPhysicsEditMode>("AnimGraph.SkeletalControl.KawaiiPhysics", LOCTEXT("FKawaiiPhysicsEditMode", "Kawaii Physics"), FSlateIcon(), false);
+	FEditorModeRegistry::Get().RegisterMode<FKawaiiPhysicsEditMode>("AnimGraph.SkeletalControl.KawaiiPhysics",
+	                                                                LOCTEXT("FKawaiiPhysicsEditMode", "Kawaii Physics"),
+	                                                                FSlateIcon(), false);
 }
-
 
 
 void FKawaiiPhysicsEdModule::ShutdownModule()

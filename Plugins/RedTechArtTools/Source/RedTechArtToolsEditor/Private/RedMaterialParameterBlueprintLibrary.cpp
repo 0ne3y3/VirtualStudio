@@ -22,38 +22,47 @@
 
 #include "RedMaterialParameterBlueprintLibrary.h"
 
+#include "Materials/Material.h"
 #include "Materials/MaterialExpressionCurveAtlasRowParameter.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialFunction.h"
 #include "Editor.h"
 #include "IContentBrowserSingleton.h"
 #include "IMaterialEditor.h"
 #include "MaterialEditorUtilities.h"
 #include "Materials/MaterialExpressionCollectionParameter.h"
+#include "Materials/MaterialExpressionTextureSampleParameter.h"
 #include "Materials/MaterialParameterCollection.h"
 #include "Subsystems/AssetEditorSubsystem.h"
 #include "Toolkits/ToolkitManager.h"
 
 bool URedMaterialParameterBlueprintLibrary::OpenAndFocusMaterialExpression(UMaterialExpression* MaterialExpression)
 {
-	if (UObject* OwningObject = GetMaterialExpression_OwningObject(MaterialExpression))
+	UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
+	if(!IsValid(AssetEditorSubsystem))
+		return false;
+
+	UObject* OwningObject = GetMaterialExpression_OwningObject(MaterialExpression);
+	if(!IsValid(OwningObject))
+		return false;
+	
+	if (!AssetEditorSubsystem->OpenEditorForAsset(OwningObject))
+		return false;
+
+	const auto MaterialEditorInstance = StaticCastSharedPtr<IMaterialEditor>(
+		FToolkitManager::Get().FindEditorForAsset(OwningObject));
+
+	if(!MaterialEditorInstance.IsValid())
+		return false;
+	
+	MaterialEditorInstance->FocusWindow(OwningObject);
+	if(IsValid(MaterialExpression->GraphNode) || MaterialExpression->bIsParameterExpression)
 	{
-		if (auto* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>())
-		{
-			if (AssetEditorSubsystem->OpenEditorForAsset(OwningObject))
-			{
-				if (const auto MaterialEditorInstance = StaticCastSharedPtr<IMaterialEditor>(
-					FToolkitManager::Get().FindEditorForAsset(OwningObject)))
-				{
-					MaterialEditorInstance->FocusWindow(OwningObject);
-					if(IsValid(MaterialExpression->GraphNode) || MaterialExpression->bIsParameterExpression)
-					{
-						MaterialEditorInstance->JumpToExpression(MaterialExpression);
-					}
-				}
-			}
-		}
+		MaterialEditorInstance->JumpToExpression(MaterialExpression);
+		return true;
 	}
+
 	return false;
 }
 

@@ -18,17 +18,17 @@ DEFINE_LOG_CATEGORY_STATIC( LogCharacter, Log, All );
 
 void UCharacterCreationUtility::DestroyCharacter()
 {
-	if( CharacterSpawned )
+	/*if( CharacterSpawned )
 	{
 		CharacterSpawned->Destroy();
 	}
 
-	CharacterSpawned = nullptr;
+	CharacterSpawned = nullptr;*/
 }
 
 void UCharacterCreationUtility::InitializeEditorWidget()
 {
-	CharacterDetailsView->CategoriesToShow.Add( "Character" );
+	/*CharacterDetailsView->CategoriesToShow.Add( "Character" );
 
 	AnimationDetailsView->CategoriesToShow.Add( "Animation" );
 
@@ -39,14 +39,14 @@ void UCharacterCreationUtility::InitializeEditorWidget()
 	SaveButton->OnClicked.AddUniqueDynamic( this, &UCharacterCreationUtility::SaveButtonClicked );
 	LoadButton->OnClicked.AddUniqueDynamic( this, &UCharacterCreationUtility::LoadButtonClicked );
 	BlinkButton->OnClicked.AddUniqueDynamic( this, &UCharacterCreationUtility::BlinkButtonClicked );
-	RefreshButton->OnClicked.AddUniqueDynamic( this, &UCharacterCreationUtility::UpdateCharacter );
+	RefreshButton->OnClicked.AddUniqueDynamic( this, &UCharacterCreationUtility::UpdateCharacter );*/
 }
 
 void UCharacterCreationUtility::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	if( UWorld* TheWorld = GetWorld() )
+	/*if( UWorld* TheWorld = GetWorld() )
 	{
 		TArray<AActor*> FoundActors;
 		
@@ -55,20 +55,16 @@ void UCharacterCreationUtility::NativeConstruct()
 		if( FoundActors.Num() > 0 )
 		{
 			CharacterSpawned = Cast<AHuman>(FoundActors[0]);
-			CharacterProperties = CharacterSpawned->GetHumanBodyData();
 			CharacterClass = FoundActors[0]->GetClass();
-			AnimationPreview = CharacterSpawned->MainBodyAnimation_Editor;
-			AnimPlayRate = CharacterSpawned->AnimationPlayRate_Editor;
-			AnimationBP = CharacterSpawned->AnimationBP_Editor;
 
 			UpdateEyesArray();
 		}
-	}
+	}*/
 }
 
 void UCharacterCreationUtility::UpdateCharacter()
 {
-	if( UWorld* TheWorld = GetWorld() )
+	/*if( UWorld* TheWorld = GetWorld() )
 	{
 		if( !CharacterClass ) CharacterClass = AHuman::StaticClass();
 
@@ -84,94 +80,72 @@ void UCharacterCreationUtility::UpdateCharacter()
 			CharacterSpawned = TheWorld->SpawnActor<AHuman>( CharacterClass, Parameters );
 		}
 
-		CharacterSpawned->SetEditorAnimationBP_Editor( AnimationBP );
-		CharacterSpawned->SetHumanBodyData( CharacterProperties );
-
-		CharacterSpawned->ConstructHumanCharacter();
-
 		UpdateEyesArray();
 		UpdatePreviewData();
 
 		if( AnimationPreview && IsAnimSequenceCompatible() )
 		{
-			CharacterSpawned->UpdateMainBodyAnimation_Editor( AnimationPreview, AnimPlayRate, ARKitName );
 		}
 		else
 		{
-			CharacterSpawned->UpdateMainBodyAnimation_Editor( nullptr, AnimPlayRate, ARKitName );
 		}
-	}
+	}*/
 }
 
 void UCharacterCreationUtility::OnPropertyChangedMainPanel(FName PropertyName)
 {
-	UpdateCharacter();
+	/*UpdateCharacter();*/
 }
 
 void UCharacterCreationUtility::OnPropertyChangedEditorPreview( FName PropertyName )
 {
-	if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, Effect ) )
+	/*if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, Effect ) )
 	{
-		CharacterSpawned->SetFaceEffect( (float)Effect/10.f );
+		
 	}
 	else if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, MainWetness ) )
 	{
-		CharacterSpawned->SetGlobalWetness( MainWetness );
+		
 	}
 	else if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, HeightWetness ) || PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, HeightWetnessOpacity ) )
 	{
-		CharacterSpawned->SetHeightWetness( HeightWetness, HeightWetnessOpacity );
+		
 	}
 	else if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, UnderRoof ) )
 	{
-		CharacterSpawned->SetIsUnderRoof( UnderRoof );
+		
 	}
 	else if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, HeightMask ) )
 	{
-		CharacterSpawned->SetHeightMaskGlobal( HeightMask );
+		
 	}
 	else if( PropertyName == TEXT("X") || PropertyName == TEXT( "Y" ) || PropertyName == TEXT( "Z" ) || PropertyName == GET_MEMBER_NAME_CHECKED(UCharacterCreationUtility, SphereMaskRadius) )
 	{
-		CharacterSpawned->SetSphereMaskGlobal( SphereMaskPosition , SphereMaskRadius );
+		
 	}
 	else if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, EyesBleeding ) )
 	{
-		for(uint8 I=0; I < EyesBleeding.Num(); I++ )
-		{
-			TArray<int32> IndexArray;
-			IndexArray.Add(I);
-			CharacterSpawned->SetEyesBleeding( EyesBleeding[I], IndexArray );
-		}
+		
 	}
 	else if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, EyesEmissive ) )
 	{
-		for( uint8 I=0; I < EyesEmissive.Num(); I++ )
-		{
-			TArray<int32> IndexArray;
-			IndexArray.Add( I );
-			CharacterSpawned->SetEyesEmissive( EyesEmissive[I], IndexArray );
-		}
+		
 	}
 	else if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, PupilScale ) )
 	{
-		for( uint8 I=0; I < PupilScale.Num(); I++ )
-		{
-			TArray<int32> IndexArray;
-			IndexArray.Add( I );
-			CharacterSpawned->SetPupilScale( PupilScale[I], IndexArray );
-		}
-	}
+		
+	}*/
 }
 
 void UCharacterCreationUtility::OnPropertyChangedAnimation( FName PropertyName )
 {
-	if(!CharacterSpawned )
+	/*if(!CharacterSpawned )
 	{
 		UE_LOG( LogCharacter, Error, TEXT( "ERROR : No character spawned !" ) );
 		return;
 	}
 
-	CharacterSpawned->SetEditorAnimationBP_Editor( AnimationBP );
+	
 
 	if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, AnimPlayRate ) || PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, AnimationPreview ) )
 	{
@@ -179,7 +153,7 @@ void UCharacterCreationUtility::OnPropertyChangedAnimation( FName PropertyName )
 		{
 			if( IsAnimSequenceCompatible() )
 			{	
-				CharacterSpawned->UpdateMainBodyAnimation_Editor( AnimationPreview, AnimPlayRate, ARKitName );
+				
 			}
 			else
 			{
@@ -188,20 +162,17 @@ void UCharacterCreationUtility::OnPropertyChangedAnimation( FName PropertyName )
 		}
 		else
 		{
-			CharacterSpawned->UpdateMainBodyAnimation_Editor( nullptr, AnimPlayRate, ARKitName );
+			
 		}
 	}
 	else if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, AnimationBP ) )
 	{
-		if( UModularSkeletalMeshComponent* MainBodyComponent = CharacterSpawned->GetMainBodyComponent() )
-		{
-			MainBodyComponent->SetAnimInstanceClass( AnimationBP );
-		}
+		
 	}
 	else if( PropertyName == GET_MEMBER_NAME_CHECKED( UCharacterCreationUtility, ARKitName ) )
 	{
-		CharacterSpawned->UpdateMainBodyAnimation_Editor( AnimationPreview, AnimPlayRate, ARKitName );
-	}
+		
+	}*/
 }
 
 void UCharacterCreationUtility::SaveButtonClicked()
@@ -212,7 +183,7 @@ void UCharacterCreationUtility::SaveButtonClicked()
 void UCharacterCreationUtility::LoadButtonClicked()
 {
 
-	TArray<FAssetData> AssetDatas;
+	/*TArray<FAssetData> AssetDatas;
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>( "ContentBrowser" );
 	IContentBrowserSingleton& ContentBrowserSingleton = ContentBrowserModule.Get();
 	ContentBrowserSingleton.GetSelectedAssets( AssetDatas );
@@ -232,12 +203,12 @@ void UCharacterCreationUtility::LoadButtonClicked()
 		CharacterProperties = SelectedAssetData->BodyData;
 
 		UpdateCharacter();
-	}
+	}*/
 }
 
 bool UCharacterCreationUtility::IsAnimSequenceCompatible()
 {
-	FModularMainBodyData& BodyMesh = CharacterProperties.MainBody;
+	/*FModularMainBodyData& BodyMesh = CharacterProperties.MainBody;
 
 	if( BodyMesh.MeshData )
 	{
@@ -249,14 +220,14 @@ bool UCharacterCreationUtility::IsAnimSequenceCompatible()
 				return true;
 			}
 		}
-	}
+	}*/
 	
 	return false;
 }
 
 void UCharacterCreationUtility::UpdateEyesArray()
 {
-	FModularSkeletalMeshData ModularSkeletalMeshData = CharacterProperties.GetSkeletalMeshData(EBodyPartType::Head);
+	/*FModularSkeletalMeshData ModularSkeletalMeshData = CharacterProperties.GetSkeletalMeshData(EBodyPartType::Head);
 
 	if( UHeadMeshData* HeadData = Cast<UHeadMeshData>( ModularSkeletalMeshData.MeshData ) )
 	{
@@ -276,12 +247,12 @@ void UCharacterCreationUtility::UpdateEyesArray()
 			EyesEmissive.Add( EyesEmissiveTemp.IsValidIndex( I )  ? EyesEmissiveTemp[I] : 0 );
 			PupilScale.Add( PupilScaleTemp.IsValidIndex( I )  ? PupilScaleTemp[I] : 1 );
 		}
-	}
+	}*/
 }
 
 void UCharacterCreationUtility::UpdatePreviewData()
 {
-	if( !CharacterSpawned ) return;
+	/*if( !CharacterSpawned ) return;
 
 	CharacterSpawned->SetFaceEffect( (float)Effect/10.f );
 	CharacterSpawned->SetGlobalWetness( MainWetness );
@@ -310,13 +281,13 @@ void UCharacterCreationUtility::UpdatePreviewData()
 		TArray<int32> IndexArray;
 		IndexArray.Add( I );
 		CharacterSpawned->SetPupilScale( PupilScale[I], IndexArray );
-	}
+	}*/
 }
 
 void UCharacterCreationUtility::BlinkButtonClicked()
 {
-	if( CharacterSpawned )
+	/*if( CharacterSpawned )
 	{
 		CharacterSpawned->bTestBlink_Editor = true;
-	}
+	}*/
 }
