@@ -47,7 +47,7 @@ FMutableHumanHead::FMutableHumanHead() :
 	ScleraDefaultDarkCornerOffsetY(0.517987f),
 	ScleraDarkCornerEyeCloseWeight(0.2f),
 	ScleraDarkCornerEyeWideWeight(0.0258f),
-	PupilOffsetMin(0.650000f),
+	PupilOffsetMin(0.40000f),
 	PupilOffsetMax(-0.400000f)
 {
 	IrisMaxPositionInOut = FVector2D(0.492f, 0.1144f);
@@ -61,6 +61,7 @@ FMutableHumanHead::FMutableHumanHead() :
 	HeadMesh = CharacterSettings->DefaultMutableHeadMesh;
 	DefaultHeadMaterial = CharacterSettings->DefaultMutableHeadMat;
 	HeadTexture = CharacterSettings->DefaultGrayscaleTexture;
+	HeadTextureMutable = HeadTexture;
 	DefaultEyeMaterial = CharacterSettings->DefaultMutableEyeMat;
 	DefaultDetailsTexture = CharacterSettings->DefaultGrayscaleTexture;
 	DefaultScleraTexture = CharacterSettings->DefaultGrayscaleTexture;

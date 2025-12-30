@@ -132,6 +132,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Textures")
 	TSoftObjectPtr<UTexture2D> HeadTexture;
 
+	// !! SHOULD BE THE SAME AS HeadTexture !!
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Textures", meta = (ToolTip = "!! SHOULD BE THE SAME AS HeadTexture !!"))
+	TSoftObjectPtr<UTexture2D> HeadTextureMutable;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Textures")
 	TSoftObjectPtr<UTexture2D> HairShaved;
 
